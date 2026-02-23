@@ -9,6 +9,7 @@
 
 #include <vulkan/vulkan.h>
 #include <windows.h>
+#include "../util/util_win32_compat.h"
 #include "../util/log/log.h"
 
 namespace dxvk {
