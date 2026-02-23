@@ -917,7 +917,7 @@ namespace dxvk {
         // MTU: invoke upscaler plugin before the blit
         if (cMtuEnabled) {
           g_mtuProcess(
-            contextObjects.cmd->getCommandBuffer(DxvkCmdBuffer::ExecBuffer),
+            contextObjects.cmd->getCmdBuffer(DxvkCmdBuffer::ExecBuffer),
             cDeviceHandle,
             cSrcView->image()->handle(),
             cDstView->image()->handle(),
