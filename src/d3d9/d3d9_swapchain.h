@@ -3,6 +3,7 @@
 #include "d3d9_device_child.h"
 #include "d3d9_device.h"
 #include "d3d9_format.h"
+#include "mtu_plugin_loader.h"
 
 #include "../dxvk/hud/dxvk_hud.h"
 
@@ -190,6 +191,8 @@ namespace dxvk {
     bool m_unlockAdditionalFormats = false;
 
     D3D9VkExtSwapchain m_swapchainExt;
+
+    bool                      m_mtuEnabled = false;
 
     void PresentImage(UINT PresentInterval);
 

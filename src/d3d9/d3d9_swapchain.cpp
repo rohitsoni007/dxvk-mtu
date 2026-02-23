@@ -5,6 +5,8 @@
 #include "d3d9_hud.h"
 #include "d3d9_window.h"
 
+#include "../util/util_env.h"
+
 namespace dxvk {
 
   static uint16_t MapGammaControlPoint(float x) {
@@ -22,7 +24,11 @@ namespace dxvk {
     , m_device           (pDevice->GetDXVKDevice())
     , m_frameLatencyCap  (pDevice->GetOptions()->maxFrameLatency)
     , m_latencyTracking  (EnableLatencyTracking)
-    , m_swapchainExt     (this) {
+    , m_swapchainExt     (this)
+    , m_mtuEnabled       (env::getEnvVar("MTU_ENABLED") == "1") {
+    if (m_mtuEnabled)
+      Logger::info("MTU: present hook enabled");
+
     this->NormalizePresentParameters(pPresentParams);
     m_presentParams = *pPresentParams;
     m_window = m_presentParams.hDeviceWindow;
@@ -875,7 +881,8 @@ namespace dxvk {
         cDstRect        = dstRect,
         cSync           = sync,
         cFrameId        = m_wctx->frameId,
-        cLatency        = m_latencyTracker
+        cLatency        = m_latencyTracker,
+        cMtuEnabled     = m_mtuEnabled
       ] (DxvkContext* ctx) {
         // Update back buffer color space as necessary
         if (cSrcView->image()->info().colorSpace != cColorSpace) {
@@ -887,6 +894,16 @@ namespace dxvk {
 
         // Blit back buffer onto Vulkan swap chain
         auto contextObjects = ctx->beginExternalRendering();
+
+        // MTU: invoke upscaler plugin before the blit
+        if (cMtuEnabled) {
+          g_mtuProcess(
+            cSrcView->image()->handle(),
+            cDstView->image()->handle(),
+            VkExtent2D { cSrcRect.extent.width, cSrcRect.extent.height },
+            VkExtent2D { cDstRect.extent.width, cDstRect.extent.height },
+            contextObjects);
+        }
 
         cBlitter->present(contextObjects,
           cDstView, cDstRect, cSrcView, cSrcRect);
