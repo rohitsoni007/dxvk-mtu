@@ -25,9 +25,15 @@ namespace dxvk {
     , m_frameLatencyCap  (pDevice->GetOptions()->maxFrameLatency)
     , m_latencyTracking  (EnableLatencyTracking)
     , m_swapchainExt     (this)
-    , m_mtuEnabled       (env::getEnvVar("MTU_ENABLED") == "1") {
-    if (m_mtuEnabled)
-      Logger::info("MTU: present hook enabled");
+    , m_mtuEnabled       (pDevice->GetOptions()->mtuEnabled) {
+    if (m_mtuEnabled) {
+      if (loadMtuPlugin()) {
+        Logger::info("MTU: present hook enabled");
+      } else {
+        m_mtuEnabled = false;
+        Logger::err("MTU: plugin load failed, present hook disabled");
+      }
+    }
 
     this->NormalizePresentParameters(pPresentParams);
     m_presentParams = *pPresentParams;
@@ -870,6 +876,17 @@ namespace dxvk {
       viewInfo.layerIndex = 0u;
       viewInfo.layerCount = 1u;
 
+      VkDevice cDeviceHandle = m_device->handle();
+      VkImage  cDepthImageHandle = VK_NULL_HANDLE;
+
+      Com<IDirect3DSurface9, false> dsSurface;
+      if (SUCCEEDED(m_parent->GetDepthStencilSurface(&dsSurface)) && dsSurface != nullptr) {
+        auto* ds = static_cast<D3D9Surface*>(dsSurface.ptr());
+        if (ds && ds->GetCommonTexture() && ds->GetCommonTexture()->GetImage()) {
+          cDepthImageHandle = ds->GetCommonTexture()->GetImage()->handle();
+        }
+      }
+
       m_parent->EmitCs([
         cDevice         = m_device,
         cPresenter      = m_wctx->presenter,
@@ -882,7 +899,9 @@ namespace dxvk {
         cSync           = sync,
         cFrameId        = m_wctx->frameId,
         cLatency        = m_latencyTracker,
-        cMtuEnabled     = m_mtuEnabled
+        cMtuEnabled     = m_mtuEnabled,
+        cDeviceHandle   = cDeviceHandle,
+        cDepthImageHandle = cDepthImageHandle
       ] (DxvkContext* ctx) {
         // Update back buffer color space as necessary
         if (cSrcView->image()->info().colorSpace != cColorSpace) {
@@ -898,11 +917,13 @@ namespace dxvk {
         // MTU: invoke upscaler plugin before the blit
         if (cMtuEnabled) {
           g_mtuProcess(
+            contextObjects.cmd->getCommandBuffer(DxvkCmdBuffer::ExecBuffer),
+            cDeviceHandle,
             cSrcView->image()->handle(),
             cDstView->image()->handle(),
+            cDepthImageHandle,
             VkExtent2D { cSrcRect.extent.width, cSrcRect.extent.height },
-            VkExtent2D { cDstRect.extent.width, cDstRect.extent.height },
-            contextObjects);
+            VkExtent2D { cDstRect.extent.width, cDstRect.extent.height });
         }
 
         cBlitter->present(contextObjects,
