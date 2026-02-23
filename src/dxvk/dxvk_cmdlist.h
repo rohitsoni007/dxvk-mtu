@@ -1197,6 +1197,7 @@ namespace dxvk {
 
     std::vector<DxvkGraphicsPipeline*> m_pipelines;
 
+  public:
     force_inline VkCommandBuffer getCmdBuffer() const {
       // Allocation logic will always provide an execution buffer
       return m_cmd.cmdBuffers[uint32_t(DxvkCmdBuffer::ExecBuffer)];

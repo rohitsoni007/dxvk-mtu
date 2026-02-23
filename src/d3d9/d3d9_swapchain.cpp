@@ -879,12 +879,13 @@ namespace dxvk {
       VkDevice cDeviceHandle = m_device->handle();
       VkImage  cDepthImageHandle = VK_NULL_HANDLE;
 
-      Com<IDirect3DSurface9, false> dsSurface;
+      IDirect3DSurface9* dsSurface = nullptr;
       if (SUCCEEDED(m_parent->GetDepthStencilSurface(&dsSurface)) && dsSurface != nullptr) {
-        auto* ds = static_cast<D3D9Surface*>(dsSurface.ptr());
+        auto* ds = static_cast<D3D9Surface*>(dsSurface);
         if (ds && ds->GetCommonTexture() && ds->GetCommonTexture()->GetImage()) {
           cDepthImageHandle = ds->GetCommonTexture()->GetImage()->handle();
         }
+        dsSurface->Release();
       }
 
       m_parent->EmitCs([
@@ -916,6 +917,12 @@ namespace dxvk {
 
         // MTU: invoke upscaler plugin before the blit
         if (cMtuEnabled) {
+          dxvk::MtuRenderParams dummyParams{};
+          dummyParams.cameraFovAngleVertical = 1.0f; // ~60 deg
+          dummyParams.cameraNear = 0.1f;
+          dummyParams.cameraFar = 1000.0f;
+          dummyParams.frameTimeDelta = 16.6f; // Placeholder 60fps
+
           g_mtuProcess(
             contextObjects.cmd->getCmdBuffer(DxvkCmdBuffer::ExecBuffer),
             cDeviceHandle,
@@ -923,7 +930,8 @@ namespace dxvk {
             cDstView->image()->handle(),
             cDepthImageHandle,
             VkExtent2D { cSrcRect.extent.width, cSrcRect.extent.height },
-            VkExtent2D { cDstRect.extent.width, cDstRect.extent.height });
+            VkExtent2D { cDstRect.extent.width, cDstRect.extent.height },
+            &dummyParams);
         }
 
         cBlitter->present(contextObjects,

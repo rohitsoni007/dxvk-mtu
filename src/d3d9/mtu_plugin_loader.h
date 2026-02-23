@@ -13,6 +13,15 @@
 
 namespace dxvk {
 
+  struct MtuRenderParams {
+    float cameraFovAngleVertical;
+    float cameraNear;
+    float cameraFar;
+    float jitterOffset[2];
+    float frameTimeDelta;
+    bool  resetVfx;
+  };
+
   /**
    * Callback signature for the upscaler plugin's Process function.
    *
@@ -23,6 +32,7 @@ namespace dxvk {
    * \param depthImage Game depth-stencil buffer (can be VK_NULL_HANDLE)
    * \param srcExtent Render resolution (backbuffer size)
    * \param dstExtent Display resolution (swapchain extent)
+   * \param params    FSR2 rendering parameters
    */
   using MtuProcessFn = void(*)(
     VkCommandBuffer     cmdBuffer,
@@ -31,7 +41,8 @@ namespace dxvk {
     VkImage             dstImage,
     VkImage             depthImage,
     VkExtent2D          srcExtent,
-    VkExtent2D          dstExtent);
+    VkExtent2D          dstExtent,
+    const MtuRenderParams* params);
 
   /**
    * Stub implementation — does nothing.
@@ -40,7 +51,8 @@ namespace dxvk {
   inline void mtuProcessStub(
       VkCommandBuffer, VkDevice,
       VkImage, VkImage, VkImage,
-      VkExtent2D, VkExtent2D) {
+      VkExtent2D, VkExtent2D,
+      const MtuRenderParams*) {
     // No-op: plugin not loaded yet
   }
 
