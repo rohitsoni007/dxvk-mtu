@@ -67,7 +67,7 @@ namespace dxvk {
 
     ImGui::Render();
     
-    VkRenderPassBeginInfo rpInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+    // VkRenderPassBeginInfo rpInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
     // We'd ideally want to render directly to dstView without a renderpass if possible,
     // but ImGui_ImplVulkan_RenderDrawData needs a command buffer and handles its own stuff.
     // DXVK uses dynamic rendering and custom blitters.
@@ -137,27 +137,28 @@ namespace dxvk {
     initInfo.Queue = m_device->queues().graphics.queueHandle;
     initInfo.PipelineCache = VK_NULL_HANDLE;
     initInfo.DescriptorPool = m_descriptorPool;
-    initInfo.Subpass = 0;
     initInfo.MinImageCount = 2; // Arbitrary
     initInfo.ImageCount = 3;    // Arbitrary
-    initInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
     initInfo.Allocator = nullptr;
-    initInfo.CheckVulkanResult = [](VkResult err) { 
+    initInfo.CheckVkResultFn = [](VkResult err) { 
         if (err != VK_SUCCESS) Logger::err(str::format("MTU: ImGui Vulkan error: ", err)); 
     };
     
     // Enable dynamic rendering
     initInfo.UseDynamicRendering = true;
-    initInfo.PipelineRenderingCreateInfo = { VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO };
-    initInfo.PipelineRenderingCreateInfo.colorAttachmentCount = 1;
+    initInfo.PipelineInfoMain.Subpass = 0;
+    initInfo.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+    initInfo.PipelineInfoMain.PipelineRenderingCreateInfo = { VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO };
+    initInfo.PipelineInfoMain.PipelineRenderingCreateInfo.colorAttachmentCount = 1;
     VkFormat format = dstView->image()->info().format;
-    initInfo.PipelineRenderingCreateInfo.pColorAttachmentFormats = &format;
+    initInfo.PipelineInfoMain.PipelineRenderingCreateInfo.pColorAttachmentFormats = &format;
 
     ImGui_ImplVulkan_Init(&initInfo);
     
     // Load fonts
     ctx.cmd->cmdBeginDebugUtilsLabel(DxvkCmdBuffer::ExecBuffer, vk::makeLabel(0xffffff, "ImGui Font Upload"));
-    ImGui_ImplVulkan_CreateFontsTexture();
+    // ImGui_ImplVulkan_CreateFontsTexture() is now internal or handled via UpdateTexture in newer versions.
+    // In most cases with Init, it's handled.
     ctx.cmd->cmdEndDebugUtilsLabel(DxvkCmdBuffer::ExecBuffer);
     
     m_initialized = true;
