@@ -1,6 +1,15 @@
 #include "mtu_overlay.h"
 #include "imgui/backends/imgui_impl_win32.h"
 #include "imgui/backends/imgui_impl_vulkan.h"
+#include <functional>
+#include "../dxvk/dxvk_device.h"
+#include "../dxvk/dxvk_context.h"
+#include "../dxvk/hud/dxvk_hud_renderer.h"
+
+#include <windows.h>
+#include "../d3d9/mtu_plugin_loader.h"
+
+#include "imgui/imgui.h"
 
 #include "../util/util_win32_compat.h"
 #include "../util/log/log.h"
@@ -203,10 +212,35 @@ namespace dxvk {
             }
         }
         
-        if (ImGui::CollapsingHeader("Advanced", 0)) {
+        if (ImGui::CollapsingHeader("Advanced & Experimental", 0)) {
             if (ImGui::Checkbox("Enabled", &m_config.enabled)) {
                 changed = true;
             }
+            
+            if (ImGui::Checkbox("Auto Exposure", &m_config.autoExposure)) {
+                changed = true;
+            }
+            
+            if (!m_config.autoExposure) {
+                if (ImGui::SliderFloat("Exposure Scale", &m_config.exposureScale, 0.1f, 10.0f, "%.2f")) {
+                    changed = true;
+                }
+            }
+            
+            if (ImGui::Checkbox("Depth Inverted", &m_config.depthInverted)) {
+                changed = true;
+            }
+            
+            if (ImGui::SliderFloat("Jitter Scale", &m_config.jitterScale, 0.0f, 2.0f, "%.2f")) {
+                changed = true;
+            }
+            
+            if (ImGui::SliderFloat("Mip Bias Offset", &m_config.mipBiasOffset, -2.0f, 2.0f, "%.2f")) {
+                changed = true;
+                if (m_onMipBiasChange)
+                    m_onMipBiasChange(m_config.mipBiasOffset);
+            }
+
             ImGui::Separator();
             if (ImGui::Button("Save Settings to Disk")) {
                 if (g_mtuSaveConfig) g_mtuSaveConfig();

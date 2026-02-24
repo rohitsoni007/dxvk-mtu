@@ -195,6 +195,17 @@ namespace dxvk {
       const D3DGAMMARAMP* pRamp);
 
     void    STDMETHODCALLTYPE GetGammaRamp(UINT iSwapChain, D3DGAMMARAMP* pRamp);
+    
+    Matrix4 GetTransform(D3DTRANSFORMSTATETYPE State) const {
+      return m_state.transforms[GetTransformIndex(State)];
+    }
+
+    void SetMtuMipBiasOffset(float Offset) {
+      if (m_mtuMipBiasOffset != Offset) {
+        m_mtuMipBiasOffset = Offset;
+        m_dirtySamplerStates = 0xFFFFFFFF;
+      }
+    }
 
     HRESULT STDMETHODCALLTYPE CreateTexture(
             UINT                Width,
@@ -1582,6 +1593,8 @@ namespace dxvk {
     D3D9ConstantSets                m_consts[DxsoProgramTypes::Count];
 	
 	D3D9UserDefinedAnnotation*      m_annotation = nullptr;
+
+    float                           m_mtuMipBiasOffset = 0.0f;
 
     D3D9ViewportInfo                m_viewportInfo;
 

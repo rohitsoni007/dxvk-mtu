@@ -29,6 +29,13 @@ namespace dxvk {
     float sharpness;
     float resolutionScale;
     int  qualityPreset;
+    
+    // New Advanced Parameters
+    bool autoExposure;
+    float exposureScale;
+    bool depthInverted;
+    float jitterScale;
+    float mipBiasOffset;
   };
 
   /**

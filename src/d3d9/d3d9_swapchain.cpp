@@ -25,20 +25,24 @@ namespace dxvk {
     , m_frameLatencyCap  (pDevice->GetOptions()->maxFrameLatency)
     , m_latencyTracking  (EnableLatencyTracking)
     , m_swapchainExt     (this)
-    , m_mtuEnabled       (pDevice->GetOptions()->mtuEnabled)
-    , m_overlay         (m_mtuEnabled ? new MtuOverlay(m_device, m_window) : nullptr) {
+    , m_mtuEnabled       (pDevice->GetOptions()->mtuEnabled) {
+    
+    this->NormalizePresentParameters(pPresentParams);
+    m_presentParams = *pPresentParams;
+    m_window = m_presentParams.hDeviceWindow;
+
     if (m_mtuEnabled) {
       if (loadMtuPlugin()) {
+        m_overlay = new MtuOverlay(m_device, m_window);
+        m_overlay->setMipBiasCallback([this](float offset) {
+          m_parent->SetMtuMipBiasOffset(offset);
+        });
         Logger::info("MTU: present hook enabled");
       } else {
         m_mtuEnabled = false;
         Logger::err("MTU: plugin load failed, present hook disabled");
       }
     }
-
-    this->NormalizePresentParameters(pPresentParams);
-    m_presentParams = *pPresentParams;
-    m_window = m_presentParams.hDeviceWindow;
 
     UpdateWindowCtx();
 
@@ -883,6 +887,23 @@ namespace dxvk {
       VkDevice cDeviceHandle = m_device->handle();
       VkImage  cDepthImageHandle = VK_NULL_HANDLE;
 
+      // Extract camera parameters from current projection matrix
+      Matrix4 projection = m_parent->GetTransform(D3DTS_PROJECTION);
+      float nearPlane = 0.1f;
+      float farPlane = 1000.0f;
+      float fovV = 1.0f;
+
+      // Decompose D3D Projection Matrix
+      if (std::abs(projection[2][2]) > 0.0001f) {
+        nearPlane = -projection[3][2] / projection[2][2];
+        if (std::abs(1.0f - projection[2][2]) > 0.0001f) {
+          farPlane = -nearPlane * projection[2][2] / (1.0f - projection[2][2]);
+        }
+      }
+      if (std::abs(projection[1][1]) > 0.0001f) {
+        fovV = 2.0f * std::atan(1.0f / projection[1][1]);
+      }
+
       IDirect3DSurface9* dsSurface = nullptr;
       if (SUCCEEDED(m_parent->GetDepthStencilSurface(&dsSurface)) && dsSurface != nullptr) {
         auto* ds = static_cast<D3D9Surface*>(dsSurface);
@@ -907,7 +928,10 @@ namespace dxvk {
         cMtuEnabled     = m_mtuEnabled,
         cOverlay        = m_overlay,
         cDeviceHandle   = cDeviceHandle,
-        cDepthImageHandle = cDepthImageHandle
+        cDepthImageHandle = cDepthImageHandle,
+        cNar            = nearPlane,
+        cFar            = farPlane,
+        cFov            = fovV
       ] (DxvkContext* ctx) {
         // Update back buffer color space as necessary
         if (cSrcView->image()->info().colorSpace != cColorSpace) {
@@ -924,19 +948,26 @@ namespace dxvk {
         if (cMtuEnabled) {
           dxvk::MtuRenderParams dummyParams{};
           dummyParams.cameraFovAngleVertical = 1.0f; // ~60 deg
-          dummyParams.cameraNear = 0.1f;
-          dummyParams.cameraFar = 1000.0f;
-          dummyParams.frameTimeDelta = 16.6f; // Placeholder 60fps
+          MtuRenderParams mtuParams = {};
+          // Jitter and FrameTime would ideally be tracked here
+          mtuParams.cameraNear = cNar;
+          mtuParams.cameraFar  = cFar;
+          mtuParams.cameraFovAngleVertical = cFov;
+          mtuParams.frameTimeDelta = 0.016f; // Placeholder
+          
+          VkImage srcImage = cSrcView->image()->handle();
+          VkImage dstImage = cDstView->image()->handle();
+          VkExtent2D srcExtent = { cSrcRect.extent.width, cSrcRect.extent.height };
+          VkExtent2D dstExtent = { cDstRect.extent.width, cDstRect.extent.height };
 
-          g_mtuProcess(
-            contextObjects.cmd->getCmdBuffer(DxvkCmdBuffer::ExecBuffer),
-            cDeviceHandle,
-            cSrcView->image()->handle(),
-            cDstView->image()->handle(),
-            cDepthImageHandle,
-            VkExtent2D { cSrcRect.extent.width, cSrcRect.extent.height },
-            VkExtent2D { cDstRect.extent.width, cDstRect.extent.height },
-            &dummyParams);
+          g_mtuProcess(ctx.cmd->getCmdBuffer(DxvkCmdBuffer::ExecBuffer),
+                       cDeviceHandle,
+                       srcImage,
+                       dstImage,
+                       cDepthImageHandle,
+                       srcExtent,
+                       dstExtent,
+                       &mtuParams);
         }
 
         cBlitter->present(contextObjects,

@@ -3,6 +3,7 @@
 #include <vector>
 #include <mutex>
 #include <memory>
+#include <functional>
 
 #include "../dxvk/dxvk_device.h"
 #include "../dxvk/dxvk_context.h"
@@ -56,6 +57,10 @@ namespace dxvk {
     void syncConfigFromPlugin();
     void syncConfigToPlugin();
 
+    void setMipBiasCallback(std::function<void(float)> callback) {
+      m_onMipBiasChange = std::move(callback);
+    }
+
   private:
     Rc<DxvkDevice>    m_device;
     HWND              m_window;
@@ -63,6 +68,8 @@ namespace dxvk {
     bool              m_initialized = false;
     
     MtuConfig         m_config;
+
+    std::function<void(float)> m_onMipBiasChange;
 
     // ImGui state
     VkDescriptorPool  m_descriptorPool = VK_NULL_HANDLE;

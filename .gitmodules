@@ -11,3 +11,6 @@
 	path = subprojects/libdisplay-info
 	url = https://github.com/doitsujin/libdisplay-info.git
 	branch = windows
+[submodule "src/mtu/imgui"]
+	path = src/mtu/imgui
+	url = https://github.com/ocornut/imgui.git

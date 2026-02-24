@@ -232,7 +232,7 @@ namespace dxvk {
   };
 
   struct D3D9SamplerInfo {
-    D3D9SamplerInfo(const std::array<DWORD, SamplerStateCount>& state)
+    D3D9SamplerInfo(const std::array<DWORD, SamplerStateCount>& state, float biasOffset = 0.0f)
     : addressU(D3DTEXTUREADDRESS(state[D3DSAMP_ADDRESSU]))
     , addressV(D3DTEXTUREADDRESS(state[D3DSAMP_ADDRESSV]))
     , addressW(D3DTEXTUREADDRESS(state[D3DSAMP_ADDRESSW]))
@@ -240,7 +240,7 @@ namespace dxvk {
     , magFilter(D3DTEXTUREFILTERTYPE(state[D3DSAMP_MAGFILTER]))
     , minFilter(D3DTEXTUREFILTERTYPE(state[D3DSAMP_MINFILTER]))
     , mipFilter(D3DTEXTUREFILTERTYPE(state[D3DSAMP_MIPFILTER]))
-    , mipLodBias(bit::cast<float>(state[D3DSAMP_MIPMAPLODBIAS]))
+    , mipLodBias(bit::cast<float>(state[D3DSAMP_MIPMAPLODBIAS]) + biasOffset)
     , maxMipLevel(state[D3DSAMP_MAXMIPLEVEL])
     , maxAnisotropy(state[D3DSAMP_MAXANISOTROPY]) { }
 

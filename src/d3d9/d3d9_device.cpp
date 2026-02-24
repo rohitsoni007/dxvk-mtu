@@ -7134,7 +7134,7 @@ namespace dxvk {
 
     EmitCs([this,
       cSlot     = slot,
-      cState    = D3D9SamplerInfo(m_state.samplerStates[Sampler]),
+      cState    = D3D9SamplerInfo(m_state.samplerStates[Sampler], m_mtuMipBiasOffset),
       cIsCube   = bool(m_cubeTextures & (1u << Sampler)),
       cIsDepth  = bool(m_depthTextures & (1u << Sampler)),
       cBindId   = m_samplerBindCount
