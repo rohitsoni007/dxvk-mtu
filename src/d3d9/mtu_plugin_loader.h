@@ -23,6 +23,14 @@ namespace dxvk {
     bool  resetVfx;
   };
 
+  struct MtuConfig {
+    bool enabled;
+    bool enableSharpening;
+    float sharpness;
+    float resolutionScale;
+    int  qualityPreset;
+  };
+
   /**
    * Callback signature for the upscaler plugin's Process function.
    *
@@ -45,6 +53,10 @@ namespace dxvk {
     VkExtent2D          dstExtent,
     const MtuRenderParams* params);
 
+  using MtuGetConfigFn = void(*)(MtuConfig* outConfig);
+  using MtuSetConfigFn = void(*)(const MtuConfig* inConfig);
+  using MtuSaveConfigFn = void(*)();
+
   /**
    * Stub implementation — does nothing.
    * Will be replaced by a real DLL-loaded function in task 2.4.
@@ -63,6 +75,9 @@ namespace dxvk {
    * real plugin function once mtu_upscaler.dll is loaded.
    */
   inline MtuProcessFn g_mtuProcess = mtuProcessStub;
+  inline MtuGetConfigFn g_mtuGetConfig = nullptr;
+  inline MtuSetConfigFn g_mtuSetConfig = nullptr;
+  inline MtuSaveConfigFn g_mtuSaveConfig = nullptr;
 
   /**
    * Dynamically loads the MTU upscaler plugin DLL and resolves imports.
@@ -101,6 +116,11 @@ namespace dxvk {
     }
 
     g_mtuProcess = processFn;
+
+    g_mtuGetConfig = reinterpret_cast<MtuGetConfigFn>(::GetProcAddress(hModule, "mtuGetConfig"));
+    g_mtuSetConfig = reinterpret_cast<MtuSetConfigFn>(::GetProcAddress(hModule, "mtuSetConfig"));
+    g_mtuSaveConfig = reinterpret_cast<MtuSaveConfigFn>(::GetProcAddress(hModule, "mtuSaveConfig"));
+
     s_loaded = true;
     Logger::info("MTU: Successfully loaded mtu_upscaler.dll and resolved hooks.");
     return true;

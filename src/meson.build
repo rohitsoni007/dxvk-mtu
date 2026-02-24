@@ -26,6 +26,8 @@ if get_option('enable_d3d10')
   subdir('d3d10')
 endif
 
+subdir('mtu')
+
 if get_option('enable_d3d9')
   subdir('dxso')
   subdir('d3d9')

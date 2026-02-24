@@ -97,6 +97,11 @@ namespace dxvk
         PostMessageW(window, WM_ACTIVATEAPP, 1, GetCurrentThreadId());
     }
 
+    if (windowData.swapchain && windowData.swapchain->GetOverlay()) {
+      if (windowData.swapchain->GetOverlay()->processMessage(window, message, wparam, lparam))
+        return 0;
+    }
+
     return CallCharsetFunction(
       CallWindowProcW, CallWindowProcA, unicode,
         windowData.proc, window, message, wparam, lparam);

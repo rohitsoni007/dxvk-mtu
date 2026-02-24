@@ -25,7 +25,8 @@ namespace dxvk {
     , m_frameLatencyCap  (pDevice->GetOptions()->maxFrameLatency)
     , m_latencyTracking  (EnableLatencyTracking)
     , m_swapchainExt     (this)
-    , m_mtuEnabled       (pDevice->GetOptions()->mtuEnabled) {
+    , m_mtuEnabled       (pDevice->GetOptions()->mtuEnabled)
+    , m_overlay         (m_mtuEnabled ? new MtuOverlay(m_device, m_window) : nullptr) {
     if (m_mtuEnabled) {
       if (loadMtuPlugin()) {
         Logger::info("MTU: present hook enabled");
@@ -834,6 +835,9 @@ namespace dxvk {
 
 
   void D3D9SwapChainEx::PresentImage(UINT SyncInterval) {
+    if (m_overlay)
+      m_overlay->update();
+
     m_parent->EndFrame(m_latencyTracker);
     m_parent->Flush();
 
@@ -901,6 +905,7 @@ namespace dxvk {
         cFrameId        = m_wctx->frameId,
         cLatency        = m_latencyTracker,
         cMtuEnabled     = m_mtuEnabled,
+        cOverlay        = m_overlay,
         cDeviceHandle   = cDeviceHandle,
         cDepthImageHandle = cDepthImageHandle
       ] (DxvkContext* ctx) {
@@ -936,6 +941,9 @@ namespace dxvk {
 
         cBlitter->present(contextObjects,
           cDstView, cDstRect, cSrcView, cSrcRect);
+
+        if (cOverlay)
+          cOverlay->render(contextObjects, cDstView);
 
         // Submit command list and present
         ctx->synchronizeWsi(cSync);
