@@ -14,6 +14,9 @@ jobs:
         submodules: recursive
         fetch-depth: 0
 
+    - name: Ensure submodules are up to date
+      run: git submodule update --init --recursive
+
     - name: Setup problem matcher
       uses: Joshua-Ashton/gcc-problem-matcher@v3
 
@@ -45,6 +48,9 @@ jobs:
       with:
         submodules: recursive
         fetch-depth: 0
+
+    - name: Ensure submodules are up to date
+      run: git submodule update --init --recursive
 
     - name: Setup problem matcher
       uses: Joshua-Ashton/gcc-problem-matcher@v3
