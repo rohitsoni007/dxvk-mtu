@@ -960,7 +960,7 @@ namespace dxvk {
           VkExtent2D srcExtent = { cSrcRect.extent.width, cSrcRect.extent.height };
           VkExtent2D dstExtent = { cDstRect.extent.width, cDstRect.extent.height };
 
-          g_mtuProcess(ctx.cmd->getCmdBuffer(DxvkCmdBuffer::ExecBuffer),
+          g_mtuProcess(ctx->cmd->getCmdBuffer(DxvkCmdBuffer::ExecBuffer),
                        cDeviceHandle,
                        srcImage,
                        dstImage,
