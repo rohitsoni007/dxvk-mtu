@@ -32,16 +32,19 @@ namespace dxvk {
     m_window = m_presentParams.hDeviceWindow;
 
     if (m_mtuEnabled) {
+      m_overlay = new MtuOverlay(m_device, m_window);
+      m_overlay->setMipBiasCallback([this](float offset) {
+        m_parent->SetMtuMipBiasOffset(offset);
+      });
+
       if (loadMtuPlugin()) {
-        m_overlay = new MtuOverlay(m_device, m_window);
-        m_overlay->setMipBiasCallback([this](float offset) {
-          m_parent->SetMtuMipBiasOffset(offset);
-        });
         Logger::info("MTU: present hook enabled");
       } else {
-        m_mtuEnabled = false;
-        Logger::err("MTU: plugin load failed, present hook disabled");
+        Logger::err("MTU: plugin load failed, upscaling disabled");
       }
+      
+      // Hook window proc to ensure the overlay receives input (F12, etc.)
+      HookWindowProc(m_window, this);
     }
 
     UpdateWindowCtx();
@@ -946,8 +949,6 @@ namespace dxvk {
 
         // MTU: invoke upscaler plugin before the blit
         if (cMtuEnabled) {
-          dxvk::MtuRenderParams dummyParams{};
-          dummyParams.cameraFovAngleVertical = 1.0f; // ~60 deg
           MtuRenderParams mtuParams = {};
           // Jitter and FrameTime would ideally be tracked here
           mtuParams.cameraNear = cNar;

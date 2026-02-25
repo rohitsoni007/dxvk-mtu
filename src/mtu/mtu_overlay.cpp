@@ -194,73 +194,110 @@ namespace dxvk {
   }
 
   void MtuOverlay::renderUI() {
-    ImGui::SetNextWindowSize(ImVec2(450, 600), ImGuiCond_FirstUseEver);
-    if (ImGui::Begin("MTU Settings — FidelityFX Super Resolution 2.2", &m_visible, ImGuiWindowFlags_NoCollapse)) {
-        
+    ImGui::SetNextWindowSize(ImVec2(450, 750), ImGuiCond_FirstUseEver);
+    if (ImGui::Begin("MTU Settings — Super Resolution", &m_visible, ImGuiWindowFlags_NoCollapse)) {
+        if (g_mtuGetConfig == nullptr) {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.4f, 0.4f, 1.0f));
+            ImGui::TextWrapped("WARNING: mtu_upscaler.dll not found. Scaling restricted.");
+            ImGui::PopStyleColor();
+            ImGui::Separator();
+        }
+
         bool changed = false;
 
-        if (ImGui::CollapsingHeader("Upscaling Mode", ImGuiTreeNodeFlags_DefaultOpen)) {
-            const char* items[] = { "Quality", "Balanced", "Performance", "Ultra Performance" };
-            if (ImGui::Combo("Preset", &m_config.qualityPreset, items, IM_ARRAYSIZE(items))) {
+        // --- Upscaling Section ---
+        if (ImGui::CollapsingHeader("Upscaling", ImGuiTreeNodeFlags_DefaultOpen)) {
+            const char* upscalingMethods[] = { "FSR 2.2", "FSR 2.1", "DLSS (Stub)", "Off" };
+            int currentMethod = 0; // Fixed for now as we are FSR 2.2 focused
+            if (ImGui::Combo("Upscaling", &currentMethod, upscalingMethods, IM_ARRAYSIZE(upscalingMethods))) {
+                m_config.enabled = (currentMethod != 3);
                 changed = true;
             }
-            
-            if (ImGui::SliderFloat("Resolution Scale", &m_config.resolutionScale, 0.1f, 1.0f, "%.2f")) {
+
+            const char* scaleModes[] = { "Quality", "Balanced", "Performance", "Ultra Performance" };
+            if (ImGui::Combo("Scale mode", &m_config.qualityPreset, scaleModes, IM_ARRAYSIZE(scaleModes))) {
                 changed = true;
             }
-        }
-        
-        if (ImGui::CollapsingHeader("Post-Processing", ImGuiTreeNodeFlags_DefaultOpen)) {
-            if (ImGui::Checkbox("Enable Sharpening (RCAS)", &m_config.enableSharpening)) {
-                changed = true;
-            }
-            
-            if (ImGui::SliderFloat("Sharpness", &m_config.sharpness, 0.0f, 1.0f)) {
-                changed = true;
-            }
-        }
-        
-        if (ImGui::CollapsingHeader("Advanced & Experimental", 0)) {
-            if (ImGui::Checkbox("Enabled", &m_config.enabled)) {
-                changed = true;
-            }
-            
-            if (ImGui::Checkbox("Auto Exposure", &m_config.autoExposure)) {
-                changed = true;
-            }
-            
-            if (!m_config.autoExposure) {
-                if (ImGui::SliderFloat("Exposure Scale", &m_config.exposureScale, 0.1f, 10.0f, "%.2f")) {
-                    changed = true;
-                }
-            }
-            
-            if (ImGui::Checkbox("Depth Inverted", &m_config.depthInverted)) {
-                changed = true;
-            }
-            
-            if (ImGui::SliderFloat("Jitter Scale", &m_config.jitterScale, 0.0f, 2.0f, "%.2f")) {
-                changed = true;
-            }
-            
-            if (ImGui::SliderFloat("Mip Bias Offset", &m_config.mipBiasOffset, -2.0f, 2.0f, "%.2f")) {
+
+            if (ImGui::SliderFloat("Mip LOD bias", &m_config.mipBiasOffset, -5.0f, 5.0f, "%.3f")) {
                 changed = true;
                 if (m_onMipBiasChange)
                     m_onMipBiasChange(m_config.mipBiasOffset);
             }
 
-            ImGui::Separator();
-            if (ImGui::Button("Save Settings to Disk")) {
-                if (g_mtuSaveConfig) g_mtuSaveConfig();
+            if (ImGui::Checkbox("Dynamic resolution", &m_config.dynamicResolution)) {
+                changed = true;
             }
+
+            const char* maskModes[] = { "Manual Reactive Mask Generation", "Auto Mask", "Off" };
+            if (ImGui::Combo("Reactive Mask", &m_config.reactiveMaskMode, maskModes, IM_ARRAYSIZE(maskModes))) {
+                changed = true;
+            }
+
+            if (ImGui::Checkbox("Use Transparency and Composition Mask", &m_config.useTransparencyMask)) {
+                changed = true;
+            }
+        }
+
+        // --- Dev Options Section ---
+        if (ImGui::CollapsingHeader("Dev Options", ImGuiTreeNodeFlags_DefaultOpen)) {
+            static bool apiDebug = false;
+            ImGui::Checkbox("Enable API Debug Checking", &apiDebug);
+
+            if (ImGui::Button("Reset accumulation")) {
+                // Future: trigger FSR2 Reset
+            }
+
+            if (ImGui::Checkbox("RCAS Sharpening", &m_config.enableSharpening)) {
+                changed = true;
+            }
+            
+            if (m_config.enableSharpening) {
+                if (ImGui::SliderFloat("Sharpness", &m_config.sharpness, 0.0f, 1.0f)) {
+                    changed = true;
+                }
+            }
+
+            ImGui::Separator();
+            
+            // Resolution Info (Placeholder or fetched from swapchain)
+            ImGui::TextDisabled("Render resolution: %dx%d", 
+                (int)(m_device->adapter()->handle() ? 1280 : 0), // Placeholder
+                (int)720);
+            ImGui::TextDisabled("Display resolution: %dx%d", 1920, 1080);
+        }
+
+        // --- Post-Processing Section ---
+        if (ImGui::CollapsingHeader("PostProcessing", 0)) {
+            const char* tonemappers[] = { "AMD Tonemapper", "Reinhard", "None" };
+            static int currentTonemapper = 0;
+            ImGui::Combo("Tonemapper", &currentTonemapper, tonemappers, IM_ARRAYSIZE(tonemappers));
+
+            if (ImGui::SliderFloat("Exposure", &m_config.exposureScale, 0.1f, 10.0f, "%.3f")) {
+                changed = true;
+            }
+            
+            ImGui::Checkbox("Auto Exposure", &m_config.autoExposure);
+        }
+
+        // --- Magnifier Section ---
+        if (ImGui::CollapsingHeader("Magnifier", 0)) {
+            static bool showMagnifier = false;
+            static bool lockMagnifier = false;
+            ImGui::Checkbox("Show Magnifier (M)", &showMagnifier);
+            ImGui::Checkbox("Lock Position (L)", &lockMagnifier);
         }
 
         if (changed) {
             syncConfigToPlugin();
         }
-        
-        ImGui::SetCursorPosY(ImGui::GetWindowHeight() - 40);
+
         ImGui::Separator();
+        if (ImGui::Button("Save Configuration")) {
+            if (g_mtuSaveConfig) g_mtuSaveConfig();
+        }
+
+        ImGui::SetCursorPosY(ImGui::GetWindowHeight() - 25);
         ImGui::TextDisabled("MTU v1.0 | Press F12 to toggle overlay");
     }
     ImGui::End();

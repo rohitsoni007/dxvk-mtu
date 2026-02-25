@@ -36,6 +36,11 @@ namespace dxvk {
     bool depthInverted;
     float jitterScale;
     float mipBiasOffset;
+    
+    // UI Alignment Fields
+    bool  dynamicResolution;
+    int   reactiveMaskMode;
+    bool  useTransparencyMask;
   };
 
   /**

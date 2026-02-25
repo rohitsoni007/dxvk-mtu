@@ -64,7 +64,7 @@ namespace dxvk {
   private:
     Rc<DxvkDevice>    m_device;
     HWND              m_window;
-    bool              m_visible = false;
+    bool              m_visible = true;
     bool              m_initialized = false;
     
     MtuConfig         m_config;
