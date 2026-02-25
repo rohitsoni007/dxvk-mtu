@@ -130,6 +130,13 @@ namespace dxvk {
     }
 
     ImGui_ImplVulkan_InitInfo initInfo = {};
+
+    // Load Vulkan functions dynamically to avoid linker issues with DXVK's dynamic loader
+    ImGui_ImplVulkan_LoadFunctions(VK_API_VERSION_1_3, [](const char* function_name, void* user_data) {
+        auto device = static_cast<DxvkDevice*>(user_data);
+        return device->adapter()->vki()->sym(function_name);
+    }, m_device.ptr());
+
     initInfo.Instance = m_device->adapter()->vki()->instance();
     initInfo.PhysicalDevice = m_device->adapter()->handle();
     initInfo.Device = vkd->device();
