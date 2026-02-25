@@ -1,0 +1,51 @@
+name: Build & Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (example: v1.0.0)"
+        required: true
+        type: string
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # REQUIRED to create release
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Fix git ownership
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+    - name: Ensure submodules are up to date
+      run: git submodule update --init --recursive
+
+    - name: Setup problem matcher
+      uses: Joshua-Ashton/gcc-problem-matcher@v3
+
+    - name: Build release
+      uses: Joshua-Ashton/arch-mingw-github-action@v8
+      with:
+        command: |
+          VERSION_NAME="${{ github.event.inputs.version }}"
+          ./package-release.sh ${VERSION_NAME} build --no-package
+          echo "VERSION_NAME=${VERSION_NAME}" >> $GITHUB_ENV
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ github.event.inputs.version }}
+        name: Release ${{ github.event.inputs.version }}
+        draft: false
+        prerelease: false
+        files: |
+          build/dxvk-${{ github.event.inputs.version }}/**
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
