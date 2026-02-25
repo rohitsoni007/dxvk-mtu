@@ -16,15 +16,15 @@ endforeach
 
 mtu_src = files(mtu_sources)
 
-mtu_deps = [ dxvk_dep ]
+mtu_dep = [ dxvk_dep ]
 
 if host_machine.system() == 'windows'
   lib_dwmapi = cpp.find_library('dwmapi', required: true)
-  mtu_deps += lib_dwmapi
+  mtu_dep += lib_dwmapi
 endif
 
 mtu_lib = static_library('mtu', [ mtu_src ],
   include_directories : [ dxvk_include_path, 'imgui' ],
-  dependencies        : mtu_deps,
+  dependencies        : mtu_dep,
   cpp_args            : [ '-DIMGUI_IMPL_VULKAN_NO_PROTOTYPES' ],
 )
