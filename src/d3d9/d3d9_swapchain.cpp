@@ -9,6 +9,8 @@
 
 namespace dxvk {
 
+  bool m_mtuInitialized = false;
+
   static uint16_t MapGammaControlPoint(float x) {
     if (x < 0.0f) x = 0.0f;
     if (x > 1.0f) x = 1.0f;
@@ -31,21 +33,24 @@ namespace dxvk {
     m_presentParams = *pPresentParams;
     m_window = m_presentParams.hDeviceWindow;
 
+    Logger::info("in.D3D9SwapChainEx::D3D9SwapChainEx");
+
     if (m_mtuEnabled) {
       m_overlay = new MtuOverlay(m_device, m_window);
       m_overlay->setMipBiasCallback([this](float offset) {
         m_parent->SetMtuMipBiasOffset(offset);
       });
 
-      if (loadMtuPlugin()) {
-        Logger::info("MTU: present hook enabled");
-      } else {
-        Logger::err("MTU: plugin load failed, upscaling disabled");
-      }
+      // if (loadMtuPlugin()) {
+      //   Logger::info("MTU: present hook enabled");
+      // } else {
+      //   Logger::err("MTU: plugin load failed, upscaling disabled");
+      // }
       
       // Hook window proc to ensure the overlay receives input (F12, etc.)
       HookWindowProc(m_window, this);
     }
+    Logger::info("in.after::MtuOverlay");
 
     UpdateWindowCtx();
 
@@ -620,6 +625,12 @@ namespace dxvk {
   HRESULT D3D9SwapChainEx::Reset(
           D3DPRESENT_PARAMETERS* pPresentParams,
           D3DDISPLAYMODEEX*      pFullscreenDisplayMode) {
+
+    if (m_mtuInitialized) {
+      destroyMtuPlugin();
+      m_mtuInitialized = false;
+    }
+
     D3D9DeviceLock lock = m_parent->LockDevice();
 
     HRESULT hr = D3D_OK;
@@ -844,6 +855,16 @@ namespace dxvk {
   void D3D9SwapChainEx::PresentImage(UINT SyncInterval) {
     if (m_overlay)
       m_overlay->update();
+    Logger::info("in.D3D9SwapChainEx::PresentImage");
+    if (m_mtuEnabled && !m_mtuInitialized) {
+      if (loadMtuPlugin()) {
+        Logger::info("MTU initialized on first PresentImage");
+        m_mtuInitialized = true;
+      } else {
+        Logger::err("MTU plugin load failed");
+      }
+    }
+    Logger::info("MTU state: initialized=" + std::to_string(m_mtuInitialized));
 
     m_parent->EndFrame(m_latencyTracker);
     m_parent->Flush();

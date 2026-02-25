@@ -95,47 +95,128 @@ namespace dxvk {
    * Dynamically loads the MTU upscaler plugin DLL and resolves imports.
    * Called once by the swapchain when MTU is enabled.
    */
+  // inline bool loadMtuPlugin() {
+  //   static bool s_loaded = false;
+  //   static bool s_attempted = false;
+
+  //   if (s_loaded) return true;
+  //   if (s_attempted) return false;
+  //   s_attempted = true;
+
+  //   HMODULE hModule = ::LoadLibraryA("mtu_upscaler.dll");
+  //   if (!hModule) {
+  //     Logger::err("MTU: Failed to load mtu_upscaler.dll");
+  //     return false;
+  //   }
+
+  //   // Resolve init (optional but recommended)
+  //   auto initFn = reinterpret_cast<int(*)()>(::GetProcAddress(hModule, "mtuPluginInit"));
+  //   if (initFn) {
+  //     if (initFn() != 0) {
+  //       Logger::err("MTU: mtuPluginInit failed");
+  //       return false;
+  //     }
+  //   } else {
+  //     Logger::warn("MTU: mtuPluginInit not found in plugin");
+  //   }
+
+  //   // Resolve main process function
+  //   auto processFn = reinterpret_cast<MtuProcessFn>(::GetProcAddress(hModule, "mtuProcess"));
+  //   if (!processFn) {
+  //     Logger::err("MTU: mtuProcess not found in plugin");
+  //     return false;
+  //   }
+
+  //   g_mtuProcess = processFn;
+
+  //   g_mtuGetConfig = reinterpret_cast<MtuGetConfigFn>(::GetProcAddress(hModule, "mtuGetConfig"));
+  //   g_mtuSetConfig = reinterpret_cast<MtuSetConfigFn>(::GetProcAddress(hModule, "mtuSetConfig"));
+  //   g_mtuSaveConfig = reinterpret_cast<MtuSaveConfigFn>(::GetProcAddress(hModule, "mtuSaveConfig"));
+
+  //   s_loaded = true;
+  //   Logger::info("MTU: Successfully loaded mtu_upscaler.dll and resolved hooks.");
+  //   return true;
+  // }
+
+  inline HMODULE g_mtuModule = nullptr;
+  inline bool g_mtuLoaded = false;
+  inline bool g_mtuAttempted = false;
+
   inline bool loadMtuPlugin() {
-    static bool s_loaded = false;
-    static bool s_attempted = false;
 
-    if (s_loaded) return true;
-    if (s_attempted) return false;
-    s_attempted = true;
+    if (g_mtuLoaded)
+      return true;
 
-    HMODULE hModule = ::LoadLibraryA("mtu_upscaler.dll");
-    if (!hModule) {
+    if (g_mtuAttempted)
+      return false;
+
+    g_mtuAttempted = true;
+
+    g_mtuModule = ::LoadLibraryA("mtu_upscaler.dll");
+    if (!g_mtuModule) {
       Logger::err("MTU: Failed to load mtu_upscaler.dll");
       return false;
     }
 
-    // Resolve init (optional but recommended)
-    auto initFn = reinterpret_cast<int(*)()>(::GetProcAddress(hModule, "mtuPluginInit"));
-    if (initFn) {
-      if (initFn() != 0) {
-        Logger::err("MTU: mtuPluginInit failed");
-        return false;
-      }
-    } else {
-      Logger::warn("MTU: mtuPluginInit not found in plugin");
+    auto initFn = reinterpret_cast<int(*)()>(
+        ::GetProcAddress(g_mtuModule, "mtuPluginInit"));
+
+    if (initFn && initFn() != 0) {
+      Logger::err("MTU: mtuPluginInit failed");
+      ::FreeLibrary(g_mtuModule);
+      g_mtuModule = nullptr;
+      return false;
     }
 
-    // Resolve main process function
-    auto processFn = reinterpret_cast<MtuProcessFn>(::GetProcAddress(hModule, "mtuProcess"));
+    auto processFn = reinterpret_cast<MtuProcessFn>(
+        ::GetProcAddress(g_mtuModule, "mtuProcess"));
+
     if (!processFn) {
       Logger::err("MTU: mtuProcess not found in plugin");
+      ::FreeLibrary(g_mtuModule);
+      g_mtuModule = nullptr;
       return false;
     }
 
     g_mtuProcess = processFn;
+    g_mtuGetConfig = reinterpret_cast<MtuGetConfigFn>(
+        ::GetProcAddress(g_mtuModule, "mtuGetConfig"));
+    g_mtuSetConfig = reinterpret_cast<MtuSetConfigFn>(
+        ::GetProcAddress(g_mtuModule, "mtuSetConfig"));
+    g_mtuSaveConfig = reinterpret_cast<MtuSaveConfigFn>(
+        ::GetProcAddress(g_mtuModule, "mtuSaveConfig"));
 
-    g_mtuGetConfig = reinterpret_cast<MtuGetConfigFn>(::GetProcAddress(hModule, "mtuGetConfig"));
-    g_mtuSetConfig = reinterpret_cast<MtuSetConfigFn>(::GetProcAddress(hModule, "mtuSetConfig"));
-    g_mtuSaveConfig = reinterpret_cast<MtuSaveConfigFn>(::GetProcAddress(hModule, "mtuSaveConfig"));
+    g_mtuLoaded = true;
 
-    s_loaded = true;
-    Logger::info("MTU: Successfully loaded mtu_upscaler.dll and resolved hooks.");
+    Logger::info("MTU: Successfully loaded mtu_upscaler.dll");
     return true;
+  }
+
+  inline void destroyMtuPlugin() {
+
+    if (!g_mtuLoaded)
+      return;
+
+    Logger::info("MTU: Unloading mtu_upscaler.dll");
+
+    // Optional shutdown export
+    auto shutdownFn = reinterpret_cast<void(*)()>(
+        ::GetProcAddress(g_mtuModule, "mtuPluginShutdown"));
+
+    if (shutdownFn)
+      shutdownFn();
+
+    ::FreeLibrary(g_mtuModule);
+
+    g_mtuModule = nullptr;
+    g_mtuLoaded = false;
+    g_mtuAttempted = false;
+
+    // Reset function pointers to safe stub
+    g_mtuProcess = mtuProcessStub;
+    g_mtuGetConfig = nullptr;
+    g_mtuSetConfig = nullptr;
+    g_mtuSaveConfig = nullptr;
   }
 
 }
