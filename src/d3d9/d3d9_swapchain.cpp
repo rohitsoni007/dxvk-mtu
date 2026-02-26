@@ -910,7 +910,9 @@ namespace dxvk {
 
       VkDevice cDeviceHandle = m_device->handle();
       VkImage  cDepthImageHandle = VK_NULL_HANDLE;
+      VkFormat cDepthFormat = viewInfo.format;
 
+      Logger::info(str::format( "Backbuffer VkFormat: ", cDepthFormat));
       // Extract camera parameters from current projection matrix
       Matrix4 projection = m_parent->GetTransform(D3DTS_PROJECTION);
       float nearPlane = 0.1f;
@@ -953,6 +955,7 @@ namespace dxvk {
         cOverlay        = m_overlay,
         cDeviceHandle   = cDeviceHandle,
         cDepthImageHandle = cDepthImageHandle,
+        cDepthFormat    = cDepthFormat,
         cNar            = nearPlane,
         cFar            = farPlane,
         cFov            = fovV
@@ -969,7 +972,7 @@ namespace dxvk {
         auto contextObjects = ctx->beginExternalRendering();
 
         // MTU: invoke upscaler plugin before the blit
-        if (cMtuEnabled) {
+        if (cMtuEnabled && m_mtuInitialized) {
           MtuRenderParams mtuParams = {};
           // Jitter and FrameTime would ideally be tracked here
           mtuParams.cameraNear = cNar;
@@ -982,11 +985,18 @@ namespace dxvk {
           VkExtent2D srcExtent = { cSrcRect.extent.width, cSrcRect.extent.height };
           VkExtent2D dstExtent = { cDstRect.extent.width, cDstRect.extent.height };
 
+          if (!srcImage || !dstImage)
+              return;
+
+          if (srcExtent.width == 0 || srcExtent.height == 0)
+              return;
+              
           g_mtuProcess(contextObjects.cmd->getCmdBuffer(DxvkCmdBuffer::ExecBuffer),
                        cDeviceHandle,
                        srcImage,
                        dstImage,
                        cDepthImageHandle,
+                       cDepthFormat,
                        srcExtent,
                        dstExtent,
                        &mtuParams);

@@ -56,6 +56,11 @@ cd build.32
 ninja
 ```
 
+./local-release.sh build 2 --no-package
+./package-release.sh build 2 --no-package
+
+package-release
+
 ### Build Artifacts
 Upon completion, the DLLs will be located in the `bin/` directory within your build folder (e.g., `build.64/bin/d3d9.dll`).
 

@@ -61,6 +61,7 @@ namespace dxvk {
     VkImage             srcImage,
     VkImage             dstImage,
     VkImage             depthImage,
+    VkFormat            depthFormat,
     VkExtent2D          srcExtent,
     VkExtent2D          dstExtent,
     const MtuRenderParams* params);
@@ -75,7 +76,7 @@ namespace dxvk {
    */
   inline void mtuProcessStub(
       VkCommandBuffer, VkDevice,
-      VkImage, VkImage, VkImage,
+      VkImage, VkImage, VkImage, VkFormat,
       VkExtent2D, VkExtent2D,
       const MtuRenderParams*) {
     // No-op: plugin not loaded yet
