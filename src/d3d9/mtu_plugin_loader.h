@@ -106,7 +106,7 @@ namespace dxvk {
 
   //   HMODULE hModule = ::LoadLibraryA("mtu_upscaler.dll");
   //   if (!hModule) {
-  //     Logger::err("MTU: Failed to load mtu_upscaler.dll");
+  //     Logger::info("MTU: Failed to load mtu_upscaler.dll");
   //     return false;
   //   }
 
@@ -114,7 +114,7 @@ namespace dxvk {
   //   auto initFn = reinterpret_cast<int(*)()>(::GetProcAddress(hModule, "mtuPluginInit"));
   //   if (initFn) {
   //     if (initFn() != 0) {
-  //       Logger::err("MTU: mtuPluginInit failed");
+  //       Logger::info("MTU: mtuPluginInit failed");
   //       return false;
   //     }
   //   } else {
@@ -124,7 +124,7 @@ namespace dxvk {
   //   // Resolve main process function
   //   auto processFn = reinterpret_cast<MtuProcessFn>(::GetProcAddress(hModule, "mtuProcess"));
   //   if (!processFn) {
-  //     Logger::err("MTU: mtuProcess not found in plugin");
+  //     Logger::info("MTU: mtuProcess not found in plugin");
   //     return false;
   //   }
 
@@ -155,7 +155,7 @@ namespace dxvk {
 
     g_mtuModule = ::LoadLibraryA("mtu_upscaler.dll");
     if (!g_mtuModule) {
-      Logger::err("MTU: Failed to load mtu_upscaler.dll");
+      Logger::info("MTU: Failed to load mtu_upscaler.dll");
       return false;
     }
 
@@ -163,7 +163,7 @@ namespace dxvk {
         ::GetProcAddress(g_mtuModule, "mtuPluginInit"));
 
     if (initFn && initFn() != 0) {
-      Logger::err("MTU: mtuPluginInit failed");
+      Logger::info("MTU: mtuPluginInit failed");
       ::FreeLibrary(g_mtuModule);
       g_mtuModule = nullptr;
       return false;
@@ -173,7 +173,7 @@ namespace dxvk {
         ::GetProcAddress(g_mtuModule, "mtuProcess"));
 
     if (!processFn) {
-      Logger::err("MTU: mtuProcess not found in plugin");
+      Logger::info("MTU: mtuProcess not found in plugin");
       ::FreeLibrary(g_mtuModule);
       g_mtuModule = nullptr;
       return false;

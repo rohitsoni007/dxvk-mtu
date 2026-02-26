@@ -44,7 +44,7 @@ namespace dxvk {
       // if (loadMtuPlugin()) {
       //   Logger::info("MTU: present hook enabled");
       // } else {
-      //   Logger::err("MTU: plugin load failed, upscaling disabled");
+      //   Logger::info("MTU: plugin load failed, upscaling disabled");
       // }
       
       // Hook window proc to ensure the overlay receives input (F12, etc.)
@@ -861,7 +861,7 @@ namespace dxvk {
         Logger::info("MTU initialized on first PresentImage");
         m_mtuInitialized = true;
       } else {
-        Logger::err("MTU plugin load failed");
+        Logger::info("MTU plugin load failed");
       }
     }
     Logger::info("MTU state: initialized=" + std::to_string(m_mtuInitialized));
