@@ -14,6 +14,10 @@
 #include "../util/util_win32_compat.h"
 #include "../util/log/log.h"
 
+#include <fstream>
+#include <sstream>
+#include <map>
+
 // Forward declare ImGui_ImplWin32_WndProcHandler
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -125,7 +129,7 @@ namespace dxvk {
     poolInfo.pPoolSizes = poolSizes.data();
     
     if (vkd->vkCreateDescriptorPool(vkd->device(), &poolInfo, nullptr, &m_descriptorPool) != VK_SUCCESS) {
-      Logger::err("MTU: Failed to create ImGui descriptor pool");
+      Logger::info("MTU: Failed to create ImGui descriptor pool");
       return;
     }
 
@@ -148,7 +152,7 @@ namespace dxvk {
     initInfo.ImageCount = 3;    // Arbitrary
     initInfo.Allocator = nullptr;
     initInfo.CheckVkResultFn = [](VkResult err) { 
-        if (err != VK_SUCCESS) Logger::err(str::format("MTU: ImGui Vulkan error: ", err)); 
+        if (err != VK_SUCCESS) Logger::info(str::format("MTU: ImGui Vulkan error: ", err)); 
     };
     
     // Enable dynamic rendering
@@ -195,106 +199,137 @@ namespace dxvk {
 
   void MtuOverlay::renderUI() {
     ImGui::SetNextWindowSize(ImVec2(450, 750), ImGuiCond_FirstUseEver);
-    if (ImGui::Begin("MTU Settings — Super Resolution", &m_visible, ImGuiWindowFlags_NoCollapse)) {
-        if (g_mtuGetConfig == nullptr) {
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.4f, 0.4f, 1.0f));
-            ImGui::TextWrapped("WARNING: mtu_upscaler.dll not found. Scaling restricted.");
-            ImGui::PopStyleColor();
-            ImGui::Separator();
-        }
+    if (ImGui::Begin("DXVK Configuration", &m_visible, ImGuiTreeNodeFlags_DefaultOpen)) {
 
+        ImGui::TextColored(ImVec4(1,1,0,1), "Changes apply on next game launch.");
+        ImGui::Separator();
+
+        if (ImGui::CollapsingHeader("General (dxvk.*)", ImGuiTreeNodeFlags_DefaultOpen)){
+            ImGui::Separator();
+
+            // ImGui::InputText("Device Filter", config.dxvk_deviceFilter, 256);
+
+            // ImGui::Checkbox("Allow Fullscreen Exclusive", &config.dxvk_allowFse);
+
+            // const char* latencySleepModes[] = { "Auto", "True", "False" };
+            // ImGui::Combo("Latency Sleep", &config.dxvk_latencySleep, latencySleepModes, 3);
+
+            // ImGui::InputInt("Latency Tolerance (us)", &config.dxvk_latencyTolerance);
+
+            // const char* autoBool[] = { "Auto", "True", "False" };
+            // ImGui::Combo("Disable NV_low_latency2", &config.dxvk_disableNvLowLatency2, autoBool, 3);
+
+            // ImGui::Combo("Tear Free", &config.dxvk_tearFree, autoBool, 3);
+
+            // ImGui::Combo("Tiler Mode", &config.dxvk_tilerMode, autoBool, 3);
+
+            // ImGui::Checkbox("Zero Mapped Memory", &config.dxvk_zeroMappedMemory);
+
+        }
+        
         bool changed = false;
 
-        // --- Upscaling Section ---
-        if (ImGui::CollapsingHeader("Upscaling", ImGuiTreeNodeFlags_DefaultOpen)) {
-            const char* upscalingMethods[] = { "FSR 2.2", "FSR 2.1", "DLSS (Stub)", "Off" };
-            int currentMethod = 0; // Fixed for now as we are FSR 2.2 focused
-            if (ImGui::Combo("Upscaling", &currentMethod, upscalingMethods, IM_ARRAYSIZE(upscalingMethods))) {
-                m_config.enabled = (currentMethod != 3);
-                changed = true;
+        if (ImGui::CollapsingHeader("MTU Settings — Super Resolution", ImGuiTreeNodeFlags_DefaultOpen)) {
+            if (g_mtuGetConfig == nullptr) {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.4f, 0.4f, 1.0f));
+                ImGui::TextWrapped("WARNING: mtu_upscaler.dll not found. Scaling restricted.");
+                ImGui::PopStyleColor();
+                ImGui::Separator();
             }
-
-            const char* scaleModes[] = { "Quality", "Balanced", "Performance", "Ultra Performance" };
-            if (ImGui::Combo("Scale mode", &m_config.qualityPreset, scaleModes, IM_ARRAYSIZE(scaleModes))) {
-                changed = true;
-            }
-
-            if (ImGui::SliderFloat("Mip LOD bias", &m_config.mipBiasOffset, -5.0f, 5.0f, "%.3f")) {
-                changed = true;
-                if (m_onMipBiasChange)
-                    m_onMipBiasChange(m_config.mipBiasOffset);
-            }
-
-            if (ImGui::Checkbox("Dynamic resolution", &m_config.dynamicResolution)) {
-                changed = true;
-            }
-
-            const char* maskModes[] = { "Manual Reactive Mask Generation", "Auto Mask", "Off" };
-            if (ImGui::Combo("Reactive Mask", &m_config.reactiveMaskMode, maskModes, IM_ARRAYSIZE(maskModes))) {
-                changed = true;
-            }
-
-            if (ImGui::Checkbox("Use Transparency and Composition Mask", &m_config.useTransparencyMask)) {
-                changed = true;
-            }
-        }
-
-        // --- Dev Options Section ---
-        if (ImGui::CollapsingHeader("Dev Options", ImGuiTreeNodeFlags_DefaultOpen)) {
-            static bool apiDebug = false;
-            ImGui::Checkbox("Enable API Debug Checking", &apiDebug);
-
-            if (ImGui::Button("Reset accumulation")) {
-                // Future: trigger FSR2 Reset
-            }
-
-            if (ImGui::Checkbox("RCAS Sharpening", &m_config.enableSharpening)) {
-                changed = true;
-            }
-            
-            if (m_config.enableSharpening) {
-                if (ImGui::SliderFloat("Sharpness", &m_config.sharpness, 0.0f, 1.0f)) {
-                    changed = true;
+            if (g_mtuGetConfig != nullptr) {
+    
+                // --- Upscaling Section ---
+                if (ImGui::CollapsingHeader("Upscaling", ImGuiTreeNodeFlags_DefaultOpen)) {
+                    const char* upscalingMethods[] = { "FSR 2.2", "FSR 2.1", "DLSS (Stub)", "Off" };
+                    int currentMethod = 0; // Fixed for now as we are FSR 2.2 focused
+                    if (ImGui::Combo("Upscaling", &currentMethod, upscalingMethods, IM_ARRAYSIZE(upscalingMethods))) {
+                        m_config.enabled = (currentMethod != 3);
+                        changed = true;
+                    }
+        
+                    const char* scaleModes[] = { "Quality", "Balanced", "Performance", "Ultra Performance" };
+                    if (ImGui::Combo("Scale mode", &m_config.qualityPreset, scaleModes, IM_ARRAYSIZE(scaleModes))) {
+                        changed = true;
+                    }
+        
+                    if (ImGui::SliderFloat("Mip LOD bias", &m_config.mipBiasOffset, -5.0f, 5.0f, "%.3f")) {
+                        changed = true;
+                        if (m_onMipBiasChange)
+                            m_onMipBiasChange(m_config.mipBiasOffset);
+                    }
+        
+                    if (ImGui::Checkbox("Dynamic resolution", &m_config.dynamicResolution)) {
+                        changed = true;
+                    }
+        
+                    const char* maskModes[] = { "Manual Reactive Mask Generation", "Auto Mask", "Off" };
+                    if (ImGui::Combo("Reactive Mask", &m_config.reactiveMaskMode, maskModes, IM_ARRAYSIZE(maskModes))) {
+                        changed = true;
+                    }
+        
+                    if (ImGui::Checkbox("Use Transparency and Composition Mask", &m_config.useTransparencyMask)) {
+                        changed = true;
+                    }
                 }
+        
+                // --- Dev Options Section ---
+                if (ImGui::CollapsingHeader("Dev Options", ImGuiTreeNodeFlags_DefaultOpen)) {
+                    static bool apiDebug = false;
+                    ImGui::Checkbox("Enable API Debug Checking", &apiDebug);
+        
+                    if (ImGui::Button("Reset accumulation")) {
+                        // Future: trigger FSR2 Reset
+                    }
+        
+                    if (ImGui::Checkbox("RCAS Sharpening", &m_config.enableSharpening)) {
+                        changed = true;
+                    }
+                    
+                    if (m_config.enableSharpening) {
+                        if (ImGui::SliderFloat("Sharpness", &m_config.sharpness, 0.0f, 1.0f)) {
+                            changed = true;
+                        }
+                    }
+        
+                    ImGui::Separator();
+                    
+                    // Resolution Info (Placeholder or fetched from swapchain)
+                    ImGui::TextDisabled("Render resolution: %dx%d", 
+                        (int)(m_device->adapter()->handle() ? 1280 : 0), // Placeholder
+                        (int)720);
+                    ImGui::TextDisabled("Display resolution: %dx%d", 1920, 1080);
+                }
+        
+                // --- Post-Processing Section ---
+                if (ImGui::CollapsingHeader("PostProcessing", 0)) {
+                    const char* tonemappers[] = { "AMD Tonemapper", "Reinhard", "None" };
+                    static int currentTonemapper = 0;
+                    ImGui::Combo("Tonemapper", &currentTonemapper, tonemappers, IM_ARRAYSIZE(tonemappers));
+        
+                    if (ImGui::SliderFloat("Exposure", &m_config.exposureScale, 0.1f, 10.0f, "%.3f")) {
+                        changed = true;
+                    }
+                    
+                    ImGui::Checkbox("Auto Exposure", &m_config.autoExposure);
+                }
+        
+                // --- Magnifier Section ---
+                if (ImGui::CollapsingHeader("Magnifier", 0)) {
+                    static bool showMagnifier = false;
+                    static bool lockMagnifier = false;
+                    ImGui::Checkbox("Show Magnifier (M)", &showMagnifier);
+                    ImGui::Checkbox("Lock Position (L)", &lockMagnifier);
+                }
+        
+                if (changed) {
+                    syncConfigToPlugin();
+                }
+        
+                // ImGui::Separator();
+                // if (ImGui::Button("Save Configuration")) {
+                //     if (g_mtuSaveConfig) g_mtuSaveConfig();
+                // }
             }
-
-            ImGui::Separator();
-            
-            // Resolution Info (Placeholder or fetched from swapchain)
-            ImGui::TextDisabled("Render resolution: %dx%d", 
-                (int)(m_device->adapter()->handle() ? 1280 : 0), // Placeholder
-                (int)720);
-            ImGui::TextDisabled("Display resolution: %dx%d", 1920, 1080);
-        }
-
-        // --- Post-Processing Section ---
-        if (ImGui::CollapsingHeader("PostProcessing", 0)) {
-            const char* tonemappers[] = { "AMD Tonemapper", "Reinhard", "None" };
-            static int currentTonemapper = 0;
-            ImGui::Combo("Tonemapper", &currentTonemapper, tonemappers, IM_ARRAYSIZE(tonemappers));
-
-            if (ImGui::SliderFloat("Exposure", &m_config.exposureScale, 0.1f, 10.0f, "%.3f")) {
-                changed = true;
-            }
-            
-            ImGui::Checkbox("Auto Exposure", &m_config.autoExposure);
-        }
-
-        // --- Magnifier Section ---
-        if (ImGui::CollapsingHeader("Magnifier", 0)) {
-            static bool showMagnifier = false;
-            static bool lockMagnifier = false;
-            ImGui::Checkbox("Show Magnifier (M)", &showMagnifier);
-            ImGui::Checkbox("Lock Position (L)", &lockMagnifier);
-        }
-
-        if (changed) {
-            syncConfigToPlugin();
-        }
-
-        ImGui::Separator();
-        if (ImGui::Button("Save Configuration")) {
-            if (g_mtuSaveConfig) g_mtuSaveConfig();
         }
 
         ImGui::SetCursorPosY(ImGui::GetWindowHeight() - 25);
@@ -311,6 +346,24 @@ namespace dxvk {
   void MtuOverlay::syncConfigToPlugin() {
     if (g_mtuSetConfig)
         g_mtuSetConfig(&m_config);
+  }
+
+  void saveDxvkConfig(const std::map<std::string, std::string>& options) {
+
+    std::ofstream file("dxvk.conf", std::ios::trunc);
+
+    if (!file.is_open()) {
+      Logger::info("DXVK: Failed to write dxvk.conf");
+      return;
+    }
+
+    for (const auto& [key, value] : options) {
+      file << key << " = " << value << "\n";
+    }
+
+    file.close();
+
+    Logger::info("DXVK: dxvk.conf updated. Restart required.");
   }
 
 }
