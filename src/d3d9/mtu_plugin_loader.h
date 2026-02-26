@@ -153,6 +153,8 @@ namespace dxvk {
 
     g_mtuAttempted = true;
 
+    SetThreadErrorMode(SEM_FAILCRITICALERRORS, nullptr);
+
     g_mtuModule = ::LoadLibraryA("mtu_upscaler.dll");
     if (!g_mtuModule) {
       Logger::info("MTU: Failed to load mtu_upscaler.dll");
