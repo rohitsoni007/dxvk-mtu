@@ -5,6 +5,8 @@
 
 #include "d3d9_annotation.h"
 
+#include "../mtu/mtu_bootstrap.h"
+
 class D3DFE_PROCESSVERTICES;
 using PSGPERRORID = UINT;
 
@@ -27,9 +29,9 @@ namespace dxvk {
 extern "C" {
 
   DLLEXPORT IDirect3D9* __stdcall Direct3DCreate9(UINT nSDKVersion) {
+    mtu::initialize();
     IDirect3D9Ex* pDirect3D = nullptr;
     dxvk::CreateD3D9(false, &pDirect3D);
-
     return pDirect3D;
   }
 
