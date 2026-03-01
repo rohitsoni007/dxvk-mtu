@@ -6,7 +6,7 @@
 #include "mtu_plugin_loader.h"
 
 #include "../dxvk/hud/dxvk_hud.h"
-#include "../mtu/mtu_overlay.h"
+// #include "../mtu/mtu_overlay.h"
 
 #include "../dxvk/dxvk_swapchain_blitter.h"
 
@@ -130,7 +130,7 @@ namespace dxvk {
 
     D3D9Surface* GetBackBuffer(UINT iBackBuffer);
 
-    MtuOverlay* GetOverlay() { return m_overlay.ptr(); }
+    // MtuOverlay* GetOverlay() { return m_overlay.ptr(); }
 
     const D3DPRESENT_PARAMETERS* GetPresentParams() const { return &m_presentParams; }
 
@@ -196,7 +196,7 @@ namespace dxvk {
     D3D9VkExtSwapchain m_swapchainExt;
 
     bool                      m_mtuEnabled = false;
-    Rc<MtuOverlay>            m_overlay;
+    // Rc<MtuOverlay>            m_overlay;
 
     void PresentImage(UINT PresentInterval);
 

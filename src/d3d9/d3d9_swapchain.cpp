@@ -33,24 +33,24 @@ namespace dxvk {
     m_presentParams = *pPresentParams;
     m_window = m_presentParams.hDeviceWindow;
 
-    Logger::info("in.D3D9SwapChainEx::D3D9SwapChainEx");
+    // Logger::info("in.D3D9SwapChainEx::D3D9SwapChainEx");
 
-    if (m_mtuEnabled) {
-      m_overlay = new MtuOverlay(m_device, m_window);
-      m_overlay->setMipBiasCallback([this](float offset) {
-        m_parent->SetMtuMipBiasOffset(offset);
-      });
+    // if (m_mtuEnabled) {
+    //   m_overlay = new MtuOverlay(m_device, m_window);
+    //   m_overlay->setMipBiasCallback([this](float offset) {
+    //     m_parent->SetMtuMipBiasOffset(offset);
+    //   });
 
-      // if (loadMtuPlugin()) {
-      //   Logger::info("MTU: present hook enabled");
-      // } else {
-      //   Logger::info("MTU: plugin load failed, upscaling disabled");
-      // }
+    //   // if (loadMtuPlugin()) {
+    //   //   Logger::info("MTU: present hook enabled");
+    //   // } else {
+    //   //   Logger::info("MTU: plugin load failed, upscaling disabled");
+    //   // }
       
-      // Hook window proc to ensure the overlay receives input (F12, etc.)
-      HookWindowProc(m_window, this);
-    }
-    Logger::info("in.after::MtuOverlay");
+    //   // Hook window proc to ensure the overlay receives input (F12, etc.)
+    //   HookWindowProc(m_window, this);
+    // }
+    // Logger::info("in.after::MtuOverlay");
 
     UpdateWindowCtx();
 
@@ -853,18 +853,18 @@ namespace dxvk {
 
 
   void D3D9SwapChainEx::PresentImage(UINT SyncInterval) {
-    if (m_overlay)
-      m_overlay->update();
-    Logger::info("in.D3D9SwapChainEx::PresentImage");
-    if (m_mtuEnabled && !m_mtuInitialized) {
-      if (loadMtuPlugin()) {
-        Logger::info("MTU initialized on first PresentImage");
-        m_mtuInitialized = true;
-      } else {
-        Logger::info("MTU plugin load failed");
-      }
-    }
-    Logger::info("MTU state: initialized=" + std::to_string(m_mtuInitialized));
+    // if (m_overlay)
+    //   m_overlay->update();
+    // Logger::info("in.D3D9SwapChainEx::PresentImage");
+    // if (m_mtuEnabled && !m_mtuInitialized) {
+    //   if (loadMtuPlugin()) {
+    //     Logger::info("MTU initialized on first PresentImage");
+    //     m_mtuInitialized = true;
+    //   } else {
+    //     Logger::info("MTU plugin load failed");
+    //   }
+    // }
+    // Logger::info("MTU state: initialized=" + std::to_string(m_mtuInitialized));
 
     m_parent->EndFrame(m_latencyTracker);
     m_parent->Flush();
@@ -971,42 +971,42 @@ namespace dxvk {
         // Blit back buffer onto Vulkan swap chain
         auto contextObjects = ctx->beginExternalRendering();
 
-        // MTU: invoke upscaler plugin before the blit
-        if (cMtuEnabled && m_mtuInitialized) {
-          MtuRenderParams mtuParams = {};
-          // Jitter and FrameTime would ideally be tracked here
-          mtuParams.cameraNear = cNar;
-          mtuParams.cameraFar  = cFar;
-          mtuParams.cameraFovAngleVertical = cFov;
-          mtuParams.frameTimeDelta = 0.016f; // Placeholder
+        // // MTU: invoke upscaler plugin before the blit
+        // if (cMtuEnabled && m_mtuInitialized) {
+        //   MtuRenderParams mtuParams = {};
+        //   // Jitter and FrameTime would ideally be tracked here
+        //   mtuParams.cameraNear = cNar;
+        //   mtuParams.cameraFar  = cFar;
+        //   mtuParams.cameraFovAngleVertical = cFov;
+        //   mtuParams.frameTimeDelta = 0.016f; // Placeholder
           
-          VkImage srcImage = cSrcView->image()->handle();
-          VkImage dstImage = cDstView->image()->handle();
-          VkExtent2D srcExtent = { cSrcRect.extent.width, cSrcRect.extent.height };
-          VkExtent2D dstExtent = { cDstRect.extent.width, cDstRect.extent.height };
+        //   VkImage srcImage = cSrcView->image()->handle();
+        //   VkImage dstImage = cDstView->image()->handle();
+        //   VkExtent2D srcExtent = { cSrcRect.extent.width, cSrcRect.extent.height };
+        //   VkExtent2D dstExtent = { cDstRect.extent.width, cDstRect.extent.height };
 
-          if (!srcImage || !dstImage)
-              return;
+        //   if (!srcImage || !dstImage)
+        //       return;
 
-          if (srcExtent.width == 0 || srcExtent.height == 0)
-              return;
+        //   if (srcExtent.width == 0 || srcExtent.height == 0)
+        //       return;
               
-          g_mtuProcess(contextObjects.cmd->getCmdBuffer(DxvkCmdBuffer::ExecBuffer),
-                       cDeviceHandle,
-                       srcImage,
-                       dstImage,
-                       cDepthImageHandle,
-                       cDepthFormat,
-                       srcExtent,
-                       dstExtent,
-                       &mtuParams);
-        }
+        //   g_mtuProcess(contextObjects.cmd->getCmdBuffer(DxvkCmdBuffer::ExecBuffer),
+        //                cDeviceHandle,
+        //                srcImage,
+        //                dstImage,
+        //                cDepthImageHandle,
+        //                cDepthFormat,
+        //                srcExtent,
+        //                dstExtent,
+        //                &mtuParams);
+        // }
 
         cBlitter->present(contextObjects,
           cDstView, cDstRect, cSrcView, cSrcRect);
 
-        if (cOverlay)
-          cOverlay->render(contextObjects, cDstView);
+        // if (cOverlay)
+        //   cOverlay->render(contextObjects, cDstView);
 
         // Submit command list and present
         ctx->synchronizeWsi(cSync);
