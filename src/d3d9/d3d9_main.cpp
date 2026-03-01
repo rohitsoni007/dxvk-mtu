@@ -29,7 +29,9 @@ namespace dxvk {
 extern "C" {
 
   DLLEXPORT IDirect3D9* __stdcall Direct3DCreate9(UINT nSDKVersion) {
+    dxvk::Logger::warn("MTU: before 32 d3d9_main");
     mtu::initialize();
+    dxvk::Logger::warn("MTU: before 32 d3d9_main after");
     IDirect3D9Ex* pDirect3D = nullptr;
     dxvk::CreateD3D9(false, &pDirect3D);
     return pDirect3D;
