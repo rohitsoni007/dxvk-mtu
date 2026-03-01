@@ -952,7 +952,7 @@ namespace dxvk {
         cFrameId        = m_wctx->frameId,
         cLatency        = m_latencyTracker,
         cMtuEnabled     = m_mtuEnabled,
-        cOverlay        = m_overlay,
+        // cOverlay        = m_overlay,
         cDeviceHandle   = cDeviceHandle,
         cDepthImageHandle = cDepthImageHandle,
         cDepthFormat    = cDepthFormat,
