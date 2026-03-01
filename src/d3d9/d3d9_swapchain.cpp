@@ -9,7 +9,16 @@
 
 namespace dxvk {
 
+  static void (*g_cagifOnPresent)() = nullptr;
   bool m_mtuInitialized = false;
+  static bool g_vkInitialized = false;
+  static void (*g_CagifRenderVk)(VkCommandBuffer) = nullptr;
+  static void (*g_CagifInitVk)(
+    HWND,
+    VkInstance,
+    VkPhysicalDevice,
+    VkDevice
+) = nullptr;
 
   static uint16_t MapGammaControlPoint(float x) {
     if (x < 0.0f) x = 0.0f;
@@ -33,7 +42,32 @@ namespace dxvk {
     m_presentParams = *pPresentParams;
     m_window = m_presentParams.hDeviceWindow;
 
-    // Logger::info("in.D3D9SwapChainEx::D3D9SwapChainEx");
+    Logger::info("37.in.D3D9SwapChainEx::D3D9SwapChainEx");
+    // if (!g_cagifOnPresent) {
+    //   Logger::info("39.in.D3D9SwapChainEx::D3D9SwapChainEx.cagif_core.dll");
+    //     HMODULE mod = GetModuleHandleA("cagif_core.dll");
+    //     if (mod) 
+    //     {
+    //       Logger::info("43.in.D3D9SwapChainEx::D3D9SwapChainEx.g_cagifOnPresent");
+    //         g_cagifOnPresent =
+    //             (void(*)())GetProcAddress(mod, "CAGIF_OnPresent");
+    //       Logger::info("46.in.D3D9SwapChainEx::D3D9SwapChainEx.g_cagifOnPresent.after");
+    //     }
+    // }
+    if (!g_CagifRenderVk) {
+      HMODULE mod = GetModuleHandleA("cagif_core.dll");
+        if (mod) {
+
+            g_CagifInitVk =
+              (decltype(g_CagifInitVk))
+              GetProcAddress(mod, "CAGIF_InitializeVulkan");
+
+            g_CagifRenderVk =
+                (decltype(g_CagifRenderVk))
+                GetProcAddress(mod, "CAGIF_InitializeVulkan");
+        }
+    }
+    Logger::info("49.in.D3D9SwapChainEx::D3D9SwapChainEx.after");
 
     // if (m_mtuEnabled) {
     //   m_overlay = new MtuOverlay(m_device, m_window);
@@ -855,7 +889,7 @@ namespace dxvk {
   void D3D9SwapChainEx::PresentImage(UINT SyncInterval) {
     // if (m_overlay)
     //   m_overlay->update();
-    // Logger::info("in.D3D9SwapChainEx::PresentImage");
+    Logger::info("871.in.D3D9SwapChainEx::PresentImage");
     // if (m_mtuEnabled && !m_mtuInitialized) {
     //   if (loadMtuPlugin()) {
     //     Logger::info("MTU initialized on first PresentImage");
@@ -939,7 +973,10 @@ namespace dxvk {
         dsSurface->Release();
       }
 
+      HWND cWindow = m_window;
+
       m_parent->EmitCs([
+        cWindow         = cWindow,
         cDevice         = m_device,
         cPresenter      = m_wctx->presenter,
         cBlitter        = m_blitter,
@@ -971,6 +1008,45 @@ namespace dxvk {
         // Blit back buffer onto Vulkan swap chain
         auto contextObjects = ctx->beginExternalRendering();
 
+        
+
+        Logger::info("before_cagifOnPresent");
+        if (g_cagifOnPresent)
+            g_cagifOnPresent();
+        Logger::info("after_cagifOnPresent");
+        // 🔥 ADD HERE
+
+        Logger::info("before_g_InitializeVulkan");
+
+        VkCommandBuffer cmd =
+        contextObjects.cmd->getCmdBuffer(DxvkCmdBuffer::ExecBuffer);
+
+        VkDevice device = cDevice->handle();
+        VkInstance instance = cDevice->vki()->instance();
+        VkPhysicalDevice physical = cDevice->adapter()->handle();
+        if (!g_vkInitialized && g_CagifInitVk) {
+             g_CagifInitVk(
+                cWindow,
+                cDevice->vki()->instance(),
+                cDevice->adapter()->handle(),
+                cDevice->handle()
+            );
+
+            g_vkInitialized = true;
+        }
+
+        Logger::info("after_g_InitializeVulkan");
+
+        Logger::info("before_g_render");
+        // Now render UI
+        if (g_vkInitialized && g_CagifRenderVk) {
+            g_CagifRenderVk(
+                contextObjects.cmd->getCmdBuffer(DxvkCmdBuffer::ExecBuffer)
+            );
+        }
+
+        Logger::info("after_g_render");
+        
         // // MTU: invoke upscaler plugin before the blit
         // if (cMtuEnabled && m_mtuInitialized) {
         //   MtuRenderParams mtuParams = {};
