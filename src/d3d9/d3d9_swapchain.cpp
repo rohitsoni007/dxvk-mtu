@@ -64,7 +64,7 @@ namespace dxvk {
 
             g_CagifRenderVk =
                 (decltype(g_CagifRenderVk))
-                GetProcAddress(mod, "CAGIF_InitializeVulkan");
+                GetProcAddress(mod, "CAGIF_RenderVulkan");
         }
     }
     Logger::info("49.in.D3D9SwapChainEx::D3D9SwapChainEx.after");
@@ -1040,9 +1040,26 @@ namespace dxvk {
         Logger::info("before_g_render");
         // Now render UI
         if (g_vkInitialized && g_CagifRenderVk) {
+            
+            VkRenderingAttachmentInfo colorAttachment = { VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO };
+            colorAttachment.imageView = cDstView->handle();
+            colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+            colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+            VkRenderingInfo renderingInfo = { VK_STRUCTURE_TYPE_RENDERING_INFO };
+            renderingInfo.renderArea = {{0, 0}, {cDstView->image()->info().extent.width, cDstView->image()->info().extent.height}};
+            renderingInfo.layerCount = 1;
+            renderingInfo.colorAttachmentCount = 1;
+            renderingInfo.pColorAttachments = &colorAttachment;
+
+            cDevice->vkd()->vkCmdBeginRendering(contextObjects.cmd->getCmdBuffer(DxvkCmdBuffer::ExecBuffer), &renderingInfo);
+
             g_CagifRenderVk(
                 contextObjects.cmd->getCmdBuffer(DxvkCmdBuffer::ExecBuffer)
             );
+
+             cDevice->vkd()->vkCmdEndRendering(contextObjects.cmd->getCmdBuffer(DxvkCmdBuffer::ExecBuffer));
         }
 
         Logger::info("after_g_render");
