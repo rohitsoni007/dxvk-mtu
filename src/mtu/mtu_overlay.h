@@ -316,6 +316,8 @@ namespace dxvk {
     // ImGui state
     ImGuiContext*     m_imguiContext = nullptr;
     VkDescriptorPool  m_descriptorPool = VK_NULL_HANDLE;
+    VkFormat          m_colorFormat = VK_FORMAT_UNDEFINED;
+    bool              m_gpuInitialized = false;
     std::mutex        m_mutex;
 
     void init(const DxvkContextObjects& ctx, const Rc<DxvkImageView>& dstView);

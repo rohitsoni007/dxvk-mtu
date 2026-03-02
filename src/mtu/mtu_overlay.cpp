@@ -50,11 +50,17 @@ namespace dxvk {
   void MtuOverlay::update() {
     std::lock_guard<std::mutex> lock(m_mutex);
     ImGui::SetCurrentContext(m_imguiContext);
-    if (ImGui::IsKeyPressed(ImGuiKey_F12)) {
-      toggleVisibility();
-      if (m_visible)
-        syncConfigFromPlugin();
-    }
+
+    if (!m_visible)
+      return;
+
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplWin32_NewFrame();
+    ImGui::NewFrame();
+
+    renderUI();
+
+    ImGui::Render();
   }
 
   void MtuOverlay::render(
@@ -67,27 +73,12 @@ namespace dxvk {
     if (!m_initialized)
       init(ctx, dstView);
 
-    if (!m_visible)
+    if (!m_visible || !m_gpuInitialized)
       return;
 
-    ImGui_ImplVulkan_NewFrame();
-    ImGui_ImplWin32_NewFrame();
-    ImGui::NewFrame();
-
-    renderUI();
-
-    ImGui::Render();
-    
-    // VkRenderPassBeginInfo rpInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-    // We'd ideally want to render directly to dstView without a renderpass if possible,
-    // but ImGui_ImplVulkan_RenderDrawData needs a command buffer and handles its own stuff.
-    // DXVK uses dynamic rendering and custom blitters.
-    
-    // For now, let's assume we can use the command buffer directly.
-    // Note: ImGui_ImplVulkan_RenderDrawData requires a renderpass to be active or dynamic rendering.
-    // Since DXVK 2.0+ uses dynamic rendering primarily:
-    
-    ImDrawData* drawData = ImGui::GetDrawData();
+    ImGuiDrawData* drawData = ImGui::GetDrawData();
+    if (!drawData)
+      return;
     
     // Prepare dynamic rendering
     VkRenderingAttachmentInfo colorAttachment = { VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO };
@@ -108,6 +99,14 @@ namespace dxvk {
   }
 
   bool MtuOverlay::processMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    if (msg == WM_KEYDOWN && wParam == VK_F12) {
+      std::lock_guard<std::mutex> lock(m_mutex);
+      toggleVisibility();
+      if (m_visible)
+        syncConfigFromPlugin();
+      return true;
+    }
+
     std::lock_guard<std::mutex> lock(m_mutex);
     ImGui::SetCurrentContext(m_imguiContext);
     if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
@@ -170,17 +169,17 @@ namespace dxvk {
     initInfo.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
     initInfo.PipelineInfoMain.PipelineRenderingCreateInfo = { VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO };
     initInfo.PipelineInfoMain.PipelineRenderingCreateInfo.colorAttachmentCount = 1;
-    VkFormat format = dstView->image()->info().format;
-    initInfo.PipelineInfoMain.PipelineRenderingCreateInfo.pColorAttachmentFormats = &format;
+    m_colorFormat = dstView->image()->info().format;
+    initInfo.PipelineInfoMain.PipelineRenderingCreateInfo.pColorAttachmentFormats = &m_colorFormat;
 
     ImGui_ImplVulkan_Init(&initInfo);
     
-    // Load fonts
+    // Load fonts - CRITICAL: Upload font texture to GPU
     ctx.cmd->cmdBeginDebugUtilsLabel(DxvkCmdBuffer::ExecBuffer, vk::makeLabel(0xffffff, "ImGui Font Upload"));
-    // ImGui_ImplVulkan_CreateFontsTexture() is now internal or handled via UpdateTexture in newer versions.
-    // In most cases with Init, it's handled.
+    ImGui_ImplVulkan_CreateFontsTexture();
     ctx.cmd->cmdEndDebugUtilsLabel(DxvkCmdBuffer::ExecBuffer);
     
+    m_gpuInitialized = true;
     m_initialized = true;
   }
 
