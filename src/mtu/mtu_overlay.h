@@ -314,7 +314,9 @@ namespace dxvk {
     std::function<void(float)> m_onMipBiasChange;
 
     // ImGui state
+    ImGuiContext*     m_imguiContext = nullptr;
     VkDescriptorPool  m_descriptorPool = VK_NULL_HANDLE;
+    std::mutex        m_mutex;
 
     void init(const DxvkContextObjects& ctx, const Rc<DxvkImageView>& dstView);
     void setupStyle();

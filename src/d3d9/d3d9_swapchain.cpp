@@ -9,7 +9,6 @@
 
 namespace dxvk {
 
-  bool m_mtuInitialized = false;
 
   static uint16_t MapGammaControlPoint(float x) {
     if (x < 0.0f) x = 0.0f;
@@ -855,16 +854,13 @@ namespace dxvk {
   void D3D9SwapChainEx::PresentImage(UINT SyncInterval) {
     if (m_overlay)
       m_overlay->update();
-    Logger::info("in.D3D9SwapChainEx::PresentImage");
-    if (m_mtuEnabled && !m_mtuInitialized) {
+    if (m_mtuEnabled && !m_mtuLoadAttempted) {
       if (loadMtuPlugin()) {
-        Logger::info("MTU initialized on first PresentImage");
         m_mtuInitialized = true;
-      } else {
-        Logger::info("MTU plugin load failed");
+        Logger::info("MTU successfully initialized");
       }
+      m_mtuLoadAttempted = true;
     }
-    Logger::info("MTU state: initialized=" + std::to_string(m_mtuInitialized));
 
     m_parent->EndFrame(m_latencyTracker);
     m_parent->Flush();
@@ -952,6 +948,7 @@ namespace dxvk {
         cFrameId        = m_wctx->frameId,
         cLatency        = m_latencyTracker,
         cMtuEnabled     = m_mtuEnabled,
+        cMtuInitialized = m_mtuInitialized,
         cOverlay        = m_overlay,
         cDeviceHandle   = cDeviceHandle,
         cDepthImageHandle = cDepthImageHandle,
@@ -972,7 +969,7 @@ namespace dxvk {
         auto contextObjects = ctx->beginExternalRendering();
 
         // MTU: invoke upscaler plugin before the blit
-        if (cMtuEnabled && m_mtuInitialized) {
+        if (cMtuEnabled && cMtuInitialized) {
           MtuRenderParams mtuParams = {};
           // Jitter and FrameTime would ideally be tracked here
           mtuParams.cameraNear = cNar;

@@ -196,6 +196,8 @@ namespace dxvk {
     D3D9VkExtSwapchain m_swapchainExt;
 
     bool                      m_mtuEnabled = false;
+    bool                      m_mtuInitialized = false;
+    bool                      m_mtuLoadAttempted = false;
     Rc<MtuOverlay>            m_overlay;
 
     void PresentImage(UINT PresentInterval);

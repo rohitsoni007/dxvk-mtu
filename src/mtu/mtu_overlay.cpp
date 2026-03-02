@@ -26,7 +26,8 @@ namespace dxvk {
   MtuOverlay::MtuOverlay(const Rc<DxvkDevice>& device, HWND window)
   : m_device(device), m_window(window) {
     IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
+    m_imguiContext = ImGui::CreateContext();
+    ImGui::SetCurrentContext(m_imguiContext);
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     
@@ -36,20 +37,23 @@ namespace dxvk {
   }
 
   MtuOverlay::~MtuOverlay() {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    ImGui::SetCurrentContext(m_imguiContext);
     if (m_initialized) {
       m_device->vkd()->vkDestroyDescriptorPool(m_device->vkd()->device(), m_descriptorPool, nullptr);
       ImGui_ImplVulkan_Shutdown();
     }
     ImGui_ImplWin32_Shutdown();
-    ImGui::DestroyContext();
+    ImGui::DestroyContext(m_imguiContext);
   }
 
   void MtuOverlay::update() {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    ImGui::SetCurrentContext(m_imguiContext);
     if (ImGui::IsKeyPressed(ImGuiKey_F12)) {
       toggleVisibility();
       if (m_visible)
         syncConfigFromPlugin();
-      Logger::info(str::format("MTU: Overlay visibility toggled (", m_visible ? "on" : "off", ")"));
     }
   }
 
@@ -57,6 +61,9 @@ namespace dxvk {
     const DxvkContextObjects& ctx,
     const Rc<DxvkImageView>&  dstView) {
     
+    std::lock_guard<std::mutex> lock(m_mutex);
+    ImGui::SetCurrentContext(m_imguiContext);
+
     if (!m_initialized)
       init(ctx, dstView);
 
@@ -101,6 +108,8 @@ namespace dxvk {
   }
 
   bool MtuOverlay::processMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    ImGui::SetCurrentContext(m_imguiContext);
     if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
       return true;
     
