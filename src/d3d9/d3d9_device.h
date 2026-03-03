@@ -3,6 +3,8 @@
 #include "../dxvk/dxvk_device.h"
 #include "../dxvk/dxvk_cs.h"
 #include "../dxvk/dxvk_staging.h"
+#include "../dxvk/overlay/overlay_manager.h"
+
 
 #include "d3d9_include.h"
 #include "d3d9_cursor.h"
@@ -1616,6 +1618,8 @@ namespace dxvk {
     D3D9VkInteropDevice             m_d3d9Interop;
     D3D9On12                        m_d3d9On12;
     DxvkD3D8Bridge                  m_d3d8Bridge;
+
+    Rc<OverlayManager>              m_overlay;
 
     // Sampler statistics
     constexpr static uint32_t       SamplerCountBits = 12u;

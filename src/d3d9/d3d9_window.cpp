@@ -57,6 +57,9 @@ namespace dxvk
     
     D3D9DeviceEx* device = windowData.swapchain->GetParent();
 
+    if (device->m_overlay->processMessage(window, message, wparam, lparam))
+      return true;
+
     if (message == WM_DESTROY)
       ResetWindowProc(window);
     else if (message == WM_ACTIVATEAPP) {

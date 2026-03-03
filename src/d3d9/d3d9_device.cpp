@@ -61,7 +61,9 @@ namespace dxvk {
     , m_flushTracker       ( GetMaxFlushType() )
     , m_d3d9Interop        ( this )
     , m_d3d9On12           ( this )
-    , m_d3d8Bridge         ( this ) {
+    , m_d3d8Bridge         ( this )
+    , m_overlay            ( new OverlayManager(dxvkDevice) ) {
+
     // If we can SWVP, then we use an extended constant set
     // as SWVP has many more slots available than HWVP.
     bool canSWVP = CanSWVP();

@@ -875,8 +875,14 @@ namespace dxvk {
         cDstRect        = dstRect,
         cSync           = sync,
         cFrameId        = m_wctx->frameId,
-        cLatency        = m_latencyTracker
+        cLatency        = m_latencyTracker,
+        cOverlay        = m_parent->m_overlay,
+        cWindow         = m_window
       ] (DxvkContext* ctx) {
+        // Initialize/update overlay
+        cOverlay->init(cWindow);
+        cOverlay->beginFrame();
+
         // Update back buffer color space as necessary
         if (cSrcView->image()->info().colorSpace != cColorSpace) {
           DxvkImageUsageInfo usage = { };
@@ -890,6 +896,9 @@ namespace dxvk {
 
         cBlitter->present(contextObjects,
           cDstView, cDstRect, cSrcView, cSrcRect);
+
+        // Render overlay
+        cOverlay->endFrame(contextObjects.cmd->getCmdBuffer(), cDstView->handle());
 
         // Submit command list and present
         ctx->synchronizeWsi(cSync);

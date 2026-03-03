@@ -219,3 +219,7 @@ if platform != 'windows'
 endif
 
 subdir('src')
+
+imgui_sub = subproject('imgui')
+imgui_dep = imgui_sub.get_variable('imgui_dep')
+

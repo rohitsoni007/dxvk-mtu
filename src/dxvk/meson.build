@@ -121,6 +121,10 @@ dxvk_src = [
   'hud/dxvk_hud_font.cpp',
   'hud/dxvk_hud_item.cpp',
   'hud/dxvk_hud_renderer.cpp',
+
+  'overlay/overlay_manager.cpp',
+  'overlay/overlay_renderer.cpp',
+  'overlay/overlay_input.cpp',
 ]
 
 if platform == 'windows'
