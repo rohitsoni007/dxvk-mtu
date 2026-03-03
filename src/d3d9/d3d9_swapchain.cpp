@@ -999,11 +999,10 @@ namespace dxvk {
                        &mtuParams);
         }
 
-        if (cOverlay)
-        cOverlay->update();
-
-        if (cOverlay)
+        if (cOverlay) {
+          cOverlay->update();
           cOverlay->render(contextObjects, cSrcView);
+        }
 
         cBlitter->present(contextObjects,
           cDstView, cDstRect, cSrcView, cSrcRect);

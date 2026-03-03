@@ -174,10 +174,10 @@ namespace dxvk {
 
     ImGui_ImplVulkan_Init(&initInfo);
 
-    VkCommandBuffer cmd = ctx.cmd->getCmdBuffer(DxvkCmdBuffer::ExecBuffer);
+    // VkCommandBuffer cmd = ctx.cmd->getCmdBuffer(DxvkCmdBuffer::ExecBuffer);
 
-    ImGui_ImplVulkan_CreateFontsTexture(cmd);
-    ImGui_ImplVulkan_DestroyFontUploadObjects();
+    // ImGui_ImplVulkan_CreateFontsTexture(cmd);
+    // ImGui_ImplVulkan_DestroyFontUploadObjects();
     
     m_gpuInitialized = true;
     m_initialized = true;
