@@ -15,3 +15,7 @@
 	path = subprojects/imgui
 	url = https://github.com/rohitsoni007/imgui.git
 	branch = v1.91.8-base
+
+[submodule "subprojects/dxbc-spirv"]
+	path = subprojects/dxbc-spirv
+	url = https://github.com/doitsujin/dxbc-spirv.git
