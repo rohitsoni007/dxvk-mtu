@@ -76,7 +76,7 @@ namespace dxvk {
     if (!m_visible || !m_gpuInitialized)
       return;
 
-    ImGuiDrawData* drawData = ImGui::GetDrawData();
+    ImDrawData* drawData = ImGui::GetDrawData();
     if (!drawData)
       return;
     
@@ -173,11 +173,6 @@ namespace dxvk {
     initInfo.PipelineInfoMain.PipelineRenderingCreateInfo.pColorAttachmentFormats = &m_colorFormat;
 
     ImGui_ImplVulkan_Init(&initInfo);
-    
-    // Load fonts - CRITICAL: Upload font texture to GPU
-    ctx.cmd->cmdBeginDebugUtilsLabel(DxvkCmdBuffer::ExecBuffer, vk::makeLabel(0xffffff, "ImGui Font Upload"));
-    ImGui_ImplVulkan_CreateFontsTexture();
-    ctx.cmd->cmdEndDebugUtilsLabel(DxvkCmdBuffer::ExecBuffer);
     
     m_gpuInitialized = true;
     m_initialized = true;
