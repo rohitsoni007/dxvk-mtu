@@ -185,12 +185,23 @@ if platform == 'windows'
 
   vulkan_lib = cpp.find_library('vulkan-1', required: false, dirs: vulkan_dirs)
   if not vulkan_lib.found()
-    vulkan_lib = cpp.find_library('vulkan-1', required: true)
+    vulkan_lib = cpp.find_library('vulkan', required: false, dirs: vulkan_dirs)
+  endif
+  if not vulkan_lib.found()
+    vulkan_lib = cpp.find_library('vulkan-1', required: false)
+  endif
+  if not vulkan_lib.found()
+    vulkan_lib = cpp.find_library('vulkan', required: false)
   endif
   
+  vulkan_libs = []
+  if vulkan_lib.found()
+    vulkan_libs += vulkan_lib
+  endif
+
   vulkan_dep = declare_dependency(
     include_directories: dxvk_include_path,
-    dependencies: vulkan_lib,
+    dependencies: vulkan_libs,
   )
 else
   vulkan_dep = dependency('vulkan')
