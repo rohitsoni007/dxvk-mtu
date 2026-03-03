@@ -223,7 +223,7 @@ foreach d : dxvk_include_dirs
   rel_dxvk_include_dirs += '../../' + d
 endforeach
 
-imgui_sub = subproject('imgui', default_options: ['extra_inc=' + ','.join(rel_dxvk_include_dirs)])
+imgui_sub = subproject('imgui')
 imgui_dep = imgui_sub.get_variable('imgui_dep')
 
 subdir('src')
