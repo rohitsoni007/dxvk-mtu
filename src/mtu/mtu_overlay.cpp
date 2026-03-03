@@ -93,9 +93,9 @@ namespace dxvk {
     renderingInfo.colorAttachmentCount = 1;
     renderingInfo.pColorAttachments = &colorAttachment;
 
-    m_device->vkd()->vkCmdBeginRendering(ctx.cmd->getCmdBuffer(DxvkCmdBuffer::ExecBuffer), &renderingInfo);
+    // m_device->vkd()->vkCmdBeginRendering(ctx.cmd->getCmdBuffer(DxvkCmdBuffer::ExecBuffer), &renderingInfo);
     ImGui_ImplVulkan_RenderDrawData(drawData, ctx.cmd->getCmdBuffer(DxvkCmdBuffer::ExecBuffer));
-    m_device->vkd()->vkCmdEndRendering(ctx.cmd->getCmdBuffer(DxvkCmdBuffer::ExecBuffer));
+    // m_device->vkd()->  (ctx.cmd->getCmdBuffer(DxvkCmdBuffer::ExecBuffer));
   }
 
   bool MtuOverlay::processMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -173,6 +173,11 @@ namespace dxvk {
     initInfo.PipelineInfoMain.PipelineRenderingCreateInfo.pColorAttachmentFormats = &m_colorFormat;
 
     ImGui_ImplVulkan_Init(&initInfo);
+
+    VkCommandBuffer cmd = ctx.cmd->getCmdBuffer(DxvkCmdBuffer::ExecBuffer);
+
+    ImGui_ImplVulkan_CreateFontsTexture(cmd);
+    ImGui_ImplVulkan_DestroyFontUploadObjects();
     
     m_gpuInitialized = true;
     m_initialized = true;

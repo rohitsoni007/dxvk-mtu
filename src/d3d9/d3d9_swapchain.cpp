@@ -625,10 +625,10 @@ namespace dxvk {
           D3DPRESENT_PARAMETERS* pPresentParams,
           D3DDISPLAYMODEEX*      pFullscreenDisplayMode) {
 
-    if (m_mtuInitialized) {
-      destroyMtuPlugin();
-      m_mtuInitialized = false;
-    }
+    // if (m_mtuInitialized) {
+    //   destroyMtuPlugin();
+    //   m_mtuInitialized = false;
+    // }
 
     D3D9DeviceLock lock = m_parent->LockDevice();
 
@@ -852,15 +852,15 @@ namespace dxvk {
 
 
   void D3D9SwapChainEx::PresentImage(UINT SyncInterval) {
-    if (m_overlay)
-      m_overlay->update();
-    if (m_mtuEnabled && !m_mtuLoadAttempted) {
-      if (loadMtuPlugin()) {
-        m_mtuInitialized = true;
-        Logger::info("MTU successfully initialized");
-      }
-      m_mtuLoadAttempted = true;
-    }
+    // if (m_overlay)
+    //   m_overlay->update();
+    // if (m_mtuEnabled && !m_mtuLoadAttempted) {
+    //   if (loadMtuPlugin()) {
+    //     m_mtuInitialized = true;
+    //     Logger::info("MTU successfully initialized");
+    //   }
+    //   m_mtuLoadAttempted = true;
+    // }
 
     m_parent->EndFrame(m_latencyTracker);
     m_parent->Flush();
@@ -999,11 +999,15 @@ namespace dxvk {
                        &mtuParams);
         }
 
+        if (cOverlay)
+        cOverlay->update();
+
+        if (cOverlay)
+          cOverlay->render(contextObjects, cSrcView);
+
         cBlitter->present(contextObjects,
           cDstView, cDstRect, cSrcView, cSrcRect);
 
-        if (cOverlay)
-          cOverlay->render(contextObjects, cDstView);
 
         // Submit command list and present
         ctx->synchronizeWsi(cSync);
