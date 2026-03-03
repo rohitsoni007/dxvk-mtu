@@ -14,3 +14,4 @@
 [submodule "subprojects/imgui"]
 	path = subprojects/imgui
 	url = https://github.com/rohitsoni007/imgui.git
+	branch = v1.91.8-base

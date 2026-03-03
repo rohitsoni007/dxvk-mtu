@@ -218,8 +218,8 @@ if platform != 'windows'
   subdir('include/native')
 endif
 
-subdir('src')
-
 imgui_sub = subproject('imgui')
 imgui_dep = imgui_sub.get_variable('imgui_dep')
+
+subdir('src')
 
