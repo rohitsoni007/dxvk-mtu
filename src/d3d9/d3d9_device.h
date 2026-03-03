@@ -6,6 +6,8 @@
 #include "../dxvk/overlay/overlay_manager.h"
 
 
+
+
 #include "d3d9_include.h"
 #include "d3d9_cursor.h"
 #include "d3d9_format.h"
@@ -1177,6 +1179,8 @@ namespace dxvk {
       return DxvkCsChunkRef(chunk, &m_csChunkPool);
     }
 
+    Rc<OverlayManager>              m_overlay;
+
   private:
 
     template<bool AllowFlush = true, typename Cmd>
@@ -1619,7 +1623,7 @@ namespace dxvk {
     D3D9On12                        m_d3d9On12;
     DxvkD3D8Bridge                  m_d3d8Bridge;
 
-    Rc<OverlayManager>              m_overlay;
+  private:
 
     // Sampler statistics
     constexpr static uint32_t       SamplerCountBits = 12u;

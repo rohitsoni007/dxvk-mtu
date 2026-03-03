@@ -40,7 +40,8 @@ namespace dxvk {
           HWND                   hFocusWindow,
           DWORD                  BehaviorFlags,
           Rc<DxvkDevice>         dxvkDevice)
-    : m_parent             ( pParent )
+    : m_overlay            ( new OverlayManager(dxvkDevice) )
+    , m_parent             ( pParent )
     , m_deviceType         ( DeviceType )
     , m_window             ( hFocusWindow )
     , m_behaviorFlags      ( BehaviorFlags )
@@ -61,8 +62,7 @@ namespace dxvk {
     , m_flushTracker       ( GetMaxFlushType() )
     , m_d3d9Interop        ( this )
     , m_d3d9On12           ( this )
-    , m_d3d8Bridge         ( this )
-    , m_overlay            ( new OverlayManager(dxvkDevice) ) {
+    , m_d3d8Bridge         ( this ) {
 
     // If we can SWVP, then we use an extended constant set
     // as SWVP has many more slots available than HWVP.

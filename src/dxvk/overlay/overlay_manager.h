@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../dxvk_device.h"
-#include <imgui.h>
 
 namespace dxvk {
 
@@ -56,6 +55,7 @@ namespace dxvk {
     Rc<OverlayRenderer> m_renderer;
     Rc<OverlayInput>    m_input;
 
+    void shutdown();
     bool m_visible = true;
     bool m_initialized = false;
   };

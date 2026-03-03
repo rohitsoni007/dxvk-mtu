@@ -441,6 +441,21 @@ namespace dxvk {
     }
 
 
+    VkCommandBuffer getCmdBuffer() const {
+      return m_cmd.cmdBuffers[uint32_t(DxvkCmdBuffer::ExecBuffer)];
+    }
+
+
+    VkCommandBuffer getCmdBuffer(DxvkCmdBuffer cmdBuffer) {
+      VkCommandBuffer buffer = m_cmd.cmdBuffers[uint32_t(cmdBuffer)];
+
+      if (likely(cmdBuffer == DxvkCmdBuffer::ExecBuffer || buffer))
+        return buffer;
+
+      return allocateCommandBuffer(cmdBuffer);
+    }
+
+
     void beginSecondaryCommandBuffer(
       const VkCommandBufferInheritanceInfo& inheritanceInfo) {
       m_execBuffer = std::exchange(m_cmd.cmdBuffers[uint32_t(DxvkCmdBuffer::ExecBuffer)],
@@ -1196,23 +1211,6 @@ namespace dxvk {
       Rc<DxvkDescriptorManager>>> m_descriptorPools;
 
     std::vector<DxvkGraphicsPipeline*> m_pipelines;
-
-    force_inline VkCommandBuffer getCmdBuffer() const {
-      // Allocation logic will always provide an execution buffer
-      return m_cmd.cmdBuffers[uint32_t(DxvkCmdBuffer::ExecBuffer)];
-    }
-
-    force_inline VkCommandBuffer getCmdBuffer(DxvkCmdBuffer cmdBuffer) {
-      VkCommandBuffer buffer = m_cmd.cmdBuffers[uint32_t(cmdBuffer)];
-
-      if (likely(cmdBuffer == DxvkCmdBuffer::ExecBuffer || buffer))
-        return buffer;
-
-      // Allocate a new command buffer if necessary
-      buffer = allocateCommandBuffer(cmdBuffer);
-      m_cmd.cmdBuffers[uint32_t(cmdBuffer)] = buffer;
-      return buffer;
-    }
 
     DxvkSparseBindSubmission& getSparseBindSubmission() {
       if (likely(m_cmd.sparseBind))

@@ -1,10 +1,9 @@
 #include "overlay_manager.h"
 #include "overlay_renderer.h"
 #include "overlay_input.h"
-
 #include <imgui.h>
-#include "backends/imgui_impl_win32.h"
-#include "backends/imgui_impl_vulkan.h"
+#include <imgui_impl_vulkan.h>
+#include <imgui_impl_win32.h>
 
 namespace dxvk {
 

@@ -37,7 +37,7 @@ namespace dxvk {
     init_info.ImageCount      = 3; // Typical for DXVK
     init_info.MSAASamples     = VK_SAMPLE_COUNT_1_BIT;
     init_info.Allocator       = nullptr;
-    init_info.CheckVulkanResult = nullptr;
+    init_info.CheckVkResultFn = nullptr;
 
     // We need to provide the Vulkan functions since we are using DXVK's function table
     // However, ImGui_ImplVulkan uses volk or direct calls if not specified.

@@ -218,7 +218,12 @@ if platform != 'windows'
   subdir('include/native')
 endif
 
-imgui_sub = subproject('imgui')
+rel_dxvk_include_dirs = []
+foreach d : dxvk_include_dirs
+  rel_dxvk_include_dirs += '../../' + d
+endforeach
+
+imgui_sub = subproject('imgui', default_options: ['extra_inc=' + ','.join(rel_dxvk_include_dirs)])
 imgui_dep = imgui_sub.get_variable('imgui_dep')
 
 subdir('src')
