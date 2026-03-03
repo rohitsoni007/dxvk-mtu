@@ -124,7 +124,11 @@ if platform == 'windows'
   endif
 
   dxvk_name_prefix = ''
-  compiler_args += ['-DDXVK_WSI_WIN32']
+  compiler_args += [
+    '-D_CRT_SECURE_NO_WARNINGS',
+    '-DVK_NO_PROTOTYPES',
+    '-DDXVK_WSI_WIN32',
+  ]
 else
   dxvk_abi_version = '0'
   dxvk_version_raw = meson.project_version().strip('v').split('.')
@@ -183,17 +187,9 @@ if platform == 'windows'
     endif
   endforeach
 
+  # We no longer strictly require linking against vulkan-1 on Windows 
+  # because we use VK_NO_PROTOTYPES and a custom loader for ImGui.
   vulkan_lib = cpp.find_library('vulkan-1', required: false, dirs: vulkan_dirs)
-  if not vulkan_lib.found()
-    vulkan_lib = cpp.find_library('vulkan', required: false, dirs: vulkan_dirs)
-  endif
-  if not vulkan_lib.found()
-    vulkan_lib = cpp.find_library('vulkan-1', required: false)
-  endif
-  if not vulkan_lib.found()
-    vulkan_lib = cpp.find_library('vulkan', required: false)
-  endif
-  
   vulkan_libs = []
   if vulkan_lib.found()
     vulkan_libs += vulkan_lib

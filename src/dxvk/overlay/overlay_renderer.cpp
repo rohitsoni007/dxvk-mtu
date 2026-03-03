@@ -2,6 +2,7 @@
 #include "../dxvk_device.h"
 
 #include <imgui_impl_vulkan.h>
+#include "../../vulkan/vulkan_loader.h"
 
 namespace dxvk {
 
@@ -18,11 +19,21 @@ namespace dxvk {
   }
 
 
+  static PFN_vkVoidFunction VKAPI_CALL ImGui_ImplVulkan_LoaderFunction(const char* name, void* user_data) {
+    auto device = static_cast<DxvkDevice*>(user_data);
+    PFN_vkVoidFunction proc = device->vkd()->sym(name);
+    if (!proc) proc = device->vki()->sym(name);
+    return proc;
+  }
+
+
   void OverlayRenderer::init() {
     if (m_initialized)
       return;
 
     createDescriptorPool();
+
+    ImGui_ImplVulkan_LoadFunctions(ImGui_ImplVulkan_LoaderFunction, m_device.ptr());
 
     ImGui_ImplVulkan_InitInfo init_info = {};
     init_info.Instance        = m_device->instance()->handle();
