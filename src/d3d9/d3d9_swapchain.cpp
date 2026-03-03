@@ -36,9 +36,9 @@ namespace dxvk {
 
     if (m_mtuEnabled) {
       m_overlay = new MtuOverlay(m_device, m_window);
-      m_overlay->setMipBiasCallback([this](float offset) {
-        m_parent->SetMtuMipBiasOffset(offset);
-      });
+      // m_overlay->setMipBiasCallback([this](float offset) {
+      //   m_parent->SetMtuMipBiasOffset(offset);
+      // });
 
       // if (loadMtuPlugin()) {
       //   Logger::info("MTU: present hook enabled");

@@ -2,6 +2,7 @@
 
 #include "../dxvk/dxvk_device.h"
 #include "../dxvk/dxvk_context.h"
+#include "../util/rc/util_rc.h"
 
 #include <imgui.h>
 #include <windows.h>
@@ -9,7 +10,8 @@
 
 namespace dxvk {
 
-class MtuOverlay {
+class MtuOverlay : public RcObject {
+
 public:
   MtuOverlay(const Rc<DxvkDevice>& device, HWND window);
   ~MtuOverlay();
