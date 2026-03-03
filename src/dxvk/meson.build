@@ -138,22 +138,6 @@ cpp = meson.get_compiler('cpp')
 dxvk_extra_deps = [ dependency('threads') ]
 
 if platform == 'windows'
-  vulkan_libs = []
-  potential_vulkan_dirs = ['D:/VulkanSDK/1.3.296.0/Lib', 'D:/ming/w64devkit/x86_64-w64-mingw32/lib']
-  vulkan_dirs = []
-  foreach d : potential_vulkan_dirs
-    if fs.is_dir(d)
-      vulkan_dirs += d
-    endif
-  endforeach
-
-  vulkan_lib = cpp.find_library('vulkan-1', required: false, dirs: vulkan_dirs)
-  if vulkan_lib.found()
-    vulkan_libs += vulkan_lib
-  else
-    vulkan_libs += dependency('vulkan', required: true)
-  endif
-
   potential_dwmapi_dirs = ['D:/ming/w64devkit/x86_64-w64-mingw32/lib', 'D:/ming/w64devkit/lib']
   dwmapi_dirs = []
   foreach d : potential_dwmapi_dirs
@@ -165,7 +149,8 @@ if platform == 'windows'
   dxvk_extra_deps += [
     cpp.find_library('setupapi', required: true),
     cpp.find_library('dwmapi', required: true, dirs: dwmapi_dirs),
-  ] + vulkan_libs
+    dependency('vulkan'),
+  ]
 endif
 if platform == 'linux'
   dxvk_extra_deps += [ cpp.find_library('dl', required: false) ]
