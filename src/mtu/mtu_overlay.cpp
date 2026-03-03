@@ -1,377 +1,175 @@
 #include "mtu_overlay.h"
+
 #include "imgui/backends/imgui_impl_win32.h"
 #include "imgui/backends/imgui_impl_vulkan.h"
-#include <functional>
-#include "../dxvk/dxvk_device.h"
-#include "../dxvk/dxvk_context.h"
-#include "../dxvk/hud/dxvk_hud_renderer.h"
 
-#include <windows.h>
-#include "../d3d9/mtu_plugin_loader.h"
-
-#include "imgui/imgui.h"
-
-#include "../util/util_win32_compat.h"
 #include "../util/log/log.h"
 
-#include <fstream>
-#include <sstream>
-#include <map>
-
-// Forward declare ImGui_ImplWin32_WndProcHandler
-extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+extern LRESULT ImGui_ImplWin32_WndProcHandler(
+  HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace dxvk {
 
-  MtuOverlay::MtuOverlay(const Rc<DxvkDevice>& device, HWND window)
-  : m_device(device), m_window(window) {
-    IMGUI_CHECKVERSION();
-    m_imguiContext = ImGui::CreateContext();
-    ImGui::SetCurrentContext(m_imguiContext);
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    
-    setupStyle();
-    
-    ImGui_ImplWin32_Init(m_window);
-  }
+MtuOverlay::MtuOverlay(
+  const Rc<DxvkDevice>& device,
+  HWND window)
+: m_device(device),
+  m_window(window) {
 
-  MtuOverlay::~MtuOverlay() {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    ImGui::SetCurrentContext(m_imguiContext);
-    if (m_initialized) {
-      m_device->vkd()->vkDestroyDescriptorPool(m_device->vkd()->device(), m_descriptorPool, nullptr);
-      ImGui_ImplVulkan_Shutdown();
+  IMGUI_CHECKVERSION();
+
+  m_imgui = ImGui::CreateContext();
+  ImGui::SetCurrentContext(m_imgui);
+
+  ImGui::StyleColorsDark();
+
+  ImGuiIO& io = ImGui::GetIO();
+  io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+
+  ImGui_ImplWin32_Init(m_window);
+}
+
+MtuOverlay::~MtuOverlay() {
+  ImGui::SetCurrentContext(m_imgui);
+
+  if (m_initialized) {
+    ImGui_ImplVulkan_Shutdown();
+
+    if (m_descriptorPool != VK_NULL_HANDLE) {
+      m_device->vkd()->vkDestroyDescriptorPool(
+        m_device->vkd()->device(),
+        m_descriptorPool,
+        nullptr);
     }
-    ImGui_ImplWin32_Shutdown();
-    ImGui::DestroyContext(m_imguiContext);
   }
 
-  void MtuOverlay::update() {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    ImGui::SetCurrentContext(m_imguiContext);
+  ImGui_ImplWin32_Shutdown();
+  ImGui::DestroyContext(m_imgui);
+}
 
-    if (!m_visible)
-      return;
+void MtuOverlay::init(DxvkContext* ctx, VkFormat format) {
+  auto vkd = m_device->vkd();
 
-    ImGui_ImplVulkan_NewFrame();
-    ImGui_ImplWin32_NewFrame();
-    ImGui::NewFrame();
+  VkDescriptorPoolSize poolSize = {
+    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+    100
+  };
 
-    renderUI();
+  VkDescriptorPoolCreateInfo poolInfo = {
+    VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO
+  };
 
-    ImGui::Render();
+  poolInfo.flags         = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+  poolInfo.maxSets       = 100;
+  poolInfo.poolSizeCount = 1;
+  poolInfo.pPoolSizes    = &poolSize;
+
+  if (vkd->vkCreateDescriptorPool(
+        vkd->device(),
+        &poolInfo,
+        nullptr,
+        &m_descriptorPool) != VK_SUCCESS) {
+    Logger::err("MTU Overlay: Failed to create descriptor pool");
+    return;
   }
 
-  void MtuOverlay::render(
-    const DxvkContextObjects& ctx,
-    const Rc<DxvkImageView>&  dstView) {
-    
-    std::lock_guard<std::mutex> lock(m_mutex);
-    ImGui::SetCurrentContext(m_imguiContext);
+  ImGui_ImplVulkan_LoadFunctions(
+    VK_API_VERSION_1_3,
+    [](const char* name, void* user) {
+      return static_cast<DxvkDevice*>(user)
+        ->adapter()->vki()->sym(name);
+    },
+    m_device.ptr());
 
-    if (!m_initialized)
-      init(ctx, dstView);
+  ImGui_ImplVulkan_InitInfo info = {};
+  info.Instance       = m_device->adapter()->vki()->instance();
+  info.PhysicalDevice = m_device->adapter()->handle();
+  info.Device         = vkd->device();
+  info.QueueFamily    = m_device->queues().graphics.queueFamily;
+  info.Queue          = m_device->queues().graphics.queueHandle;
+  info.DescriptorPool = m_descriptorPool;
+  info.MinImageCount  = 2;
+  info.ImageCount     = 2;
+  info.UseDynamicRendering = false;
 
-    if (!m_visible || !m_gpuInitialized)
-      return;
+  ImGui_ImplVulkan_Init(&info);
 
-    ImDrawData* drawData = ImGui::GetDrawData();
-    if (!drawData)
-      return;
-    
-    // Prepare dynamic rendering
-    VkRenderingAttachmentInfo colorAttachment = { VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO };
-    colorAttachment.imageView = dstView->handle();
-    colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+  m_initialized = true;
+}
 
-    VkRenderingInfo renderingInfo = { VK_STRUCTURE_TYPE_RENDERING_INFO };
-    renderingInfo.renderArea = {{0, 0}, {dstView->image()->info().extent.width, dstView->image()->info().extent.height}};
-    renderingInfo.layerCount = 1;
-    renderingInfo.colorAttachmentCount = 1;
-    renderingInfo.pColorAttachments = &colorAttachment;
+void MtuOverlay::update() {
+  std::lock_guard<std::mutex> lock(m_mutex);
 
-    // m_device->vkd()->vkCmdBeginRendering(ctx.cmd->getCmdBuffer(DxvkCmdBuffer::ExecBuffer), &renderingInfo);
-    ImGui_ImplVulkan_RenderDrawData(drawData, ctx.cmd->getCmdBuffer(DxvkCmdBuffer::ExecBuffer));
-    // m_device->vkd()->  (ctx.cmd->getCmdBuffer(DxvkCmdBuffer::ExecBuffer));
+  if (!m_visible)
+    return;
+
+  ImGui::SetCurrentContext(m_imgui);
+
+  ImGui_ImplWin32_NewFrame();
+  ImGui::NewFrame();
+
+  renderUI();
+
+  ImGui::Render();
+}
+
+void MtuOverlay::render(
+  DxvkContext* ctx,
+  const Rc<DxvkImageView>& target) {
+
+  if (!m_visible)
+    return;
+
+  ImGui::SetCurrentContext(m_imgui);
+
+  if (!m_initialized)
+    init(ctx, target->image()->info().format);
+
+  VkCommandBuffer cmd =
+    ctx->getCmdBuffer(DxvkCmdBuffer::ExecBuffer);
+
+  if (!m_fontsUploaded) {
+    ImGui_ImplVulkan_CreateFontsTexture(cmd);
+    ImGui_ImplVulkan_DestroyFontUploadObjects();
+    m_fontsUploaded = true;
   }
 
-  bool MtuOverlay::processMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    if (msg == WM_KEYDOWN && wParam == VK_F12) {
-      std::lock_guard<std::mutex> lock(m_mutex);
-      toggleVisibility();
-      if (m_visible)
-        syncConfigFromPlugin();
-      return true;
-    }
+  ImGui_ImplVulkan_RenderDrawData(
+    ImGui::GetDrawData(),
+    cmd);
+}
 
-    std::lock_guard<std::mutex> lock(m_mutex);
-    ImGui::SetCurrentContext(m_imguiContext);
-    if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
-      return true;
-    
-    if (m_visible) {
-        // Eat input meant for the game if overlay is up
-        // (This might be too aggressive, but common for overlays)
-        ImGuiIO& io = ImGui::GetIO();
-        if (io.WantCaptureMouse || io.WantCaptureKeyboard)
-            return true;
-    }
-    
-    return false;
+bool MtuOverlay::processMessage(
+  HWND hWnd,
+  UINT msg,
+  WPARAM wParam,
+  LPARAM lParam) {
+
+  if (msg == WM_KEYDOWN && wParam == VK_F12) {
+    m_visible = !m_visible;
+    return true;
   }
 
-  void MtuOverlay::init(const DxvkContextObjects& ctx, const Rc<DxvkImageView>& dstView) {
-    auto vkd = m_device->vkd();
-    
-    // Create descriptor pool for ImGui
-    std::vector<VkDescriptorPoolSize> poolSizes = {
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 }
-    };
-    VkDescriptorPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-    poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-    poolInfo.maxSets = 1;
-    poolInfo.poolSizeCount = (uint32_t)poolSizes.size();
-    poolInfo.pPoolSizes = poolSizes.data();
-    
-    if (vkd->vkCreateDescriptorPool(vkd->device(), &poolInfo, nullptr, &m_descriptorPool) != VK_SUCCESS) {
-      Logger::info("MTU: Failed to create ImGui descriptor pool");
-      return;
-    }
+  ImGui::SetCurrentContext(m_imgui);
 
-    ImGui_ImplVulkan_InitInfo initInfo = {};
+  if (ImGui_ImplWin32_WndProcHandler(
+        hWnd, msg, wParam, lParam))
+    return true;
 
-    // Load Vulkan functions dynamically to avoid linker issues with DXVK's dynamic loader
-    ImGui_ImplVulkan_LoadFunctions(VK_API_VERSION_1_3, [](const char* function_name, void* user_data) {
-        auto device = static_cast<DxvkDevice*>(user_data);
-        return device->adapter()->vki()->sym(function_name);
-    }, m_device.ptr());
+  return false;
+}
 
-    initInfo.Instance = m_device->adapter()->vki()->instance();
-    initInfo.PhysicalDevice = m_device->adapter()->handle();
-    initInfo.Device = vkd->device();
-    initInfo.QueueFamily = m_device->queues().graphics.queueFamily;
-    initInfo.Queue = m_device->queues().graphics.queueHandle;
-    initInfo.PipelineCache = VK_NULL_HANDLE;
-    initInfo.DescriptorPool = m_descriptorPool;
-    initInfo.MinImageCount = 2; // Arbitrary
-    initInfo.ImageCount = 3;    // Arbitrary
-    initInfo.Allocator = nullptr;
-    initInfo.CheckVkResultFn = [](VkResult err) { 
-        if (err != VK_SUCCESS) Logger::info(str::format("MTU: ImGui Vulkan error: ", err)); 
-    };
-    
-    // Enable dynamic rendering
-    initInfo.UseDynamicRendering = true;
-    initInfo.PipelineInfoMain.Subpass = 0;
-    initInfo.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-    initInfo.PipelineInfoMain.PipelineRenderingCreateInfo = { VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO };
-    initInfo.PipelineInfoMain.PipelineRenderingCreateInfo.colorAttachmentCount = 1;
-    m_colorFormat = dstView->image()->info().format;
-    initInfo.PipelineInfoMain.PipelineRenderingCreateInfo.pColorAttachmentFormats = &m_colorFormat;
+void MtuOverlay::renderUI() {
+  ImGui::SetNextWindowSize(ImVec2(400, 300), ImGuiCond_FirstUseEver);
 
-    ImGui_ImplVulkan_Init(&initInfo);
-
-    // VkCommandBuffer cmd = ctx.cmd->getCmdBuffer(DxvkCmdBuffer::ExecBuffer);
-
-    // ImGui_ImplVulkan_CreateFontsTexture(cmd);
-    // ImGui_ImplVulkan_DestroyFontUploadObjects();
-    
-    m_gpuInitialized = true;
-    m_initialized = true;
+  if (ImGui::Begin("MTU Overlay", &m_visible)) {
+    ImGui::Text("DXVK D3D9 Stable Overlay");
+    ImGui::Separator();
+    ImGui::Text("Resident Evil 6 / Rev2 Safe Mode");
+    ImGui::Text("Press F12 to toggle");
   }
 
-  void MtuOverlay::setupStyle() {
-    ImGui::StyleColorsDark();
-    ImGuiStyle& style = ImGui::GetStyle();
-    
-    // Premium Look: Rounded corners, subtle transparency
-    style.WindowRounding = 8.0f;
-    style.FrameRounding = 4.0f;
-    style.GrabRounding = 4.0f;
-    style.PopupRounding = 4.0f;
-    style.ScrollbarRounding = 12.0f;
-    
-    auto& colors = style.Colors;
-    colors[ImGuiCol_WindowBg] = ImVec4(0.06f, 0.05f, 0.07f, 0.94f);
-    colors[ImGuiCol_Header] = ImVec4(0.20f, 0.22f, 0.27f, 1.00f);
-    colors[ImGuiCol_HeaderHovered] = ImVec4(0.26f, 0.59f, 0.98f, 0.80f);
-    colors[ImGuiCol_HeaderActive] = ImVec4(0.06f, 0.05f, 0.07f, 1.00f);
-    colors[ImGuiCol_Button] = ImVec4(0.20f, 0.22f, 0.27f, 1.00f);
-    colors[ImGuiCol_ButtonHovered] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
-    colors[ImGuiCol_ButtonActive] = ImVec4(0.06f, 0.53f, 0.98f, 1.00f);
-    colors[ImGuiCol_FrameBg] = ImVec4(0.16f, 0.16f, 0.17f, 1.00f);
-  }
-
-  void MtuOverlay::renderUI() {
-    ImGui::SetNextWindowSize(ImVec2(450, 750), ImGuiCond_FirstUseEver);
-    if (ImGui::Begin("DXVK Configuration", &m_visible, ImGuiTreeNodeFlags_DefaultOpen)) {
-
-        ImGui::TextColored(ImVec4(1,1,0,1), "Changes apply on next game launch.");
-        ImGui::Separator();
-
-        if (ImGui::CollapsingHeader("General (dxvk.*)", ImGuiTreeNodeFlags_DefaultOpen)){
-            ImGui::Separator();
-
-            // ImGui::InputText("Device Filter", config.dxvk_deviceFilter, 256);
-
-            // ImGui::Checkbox("Allow Fullscreen Exclusive", &config.dxvk_allowFse);
-
-            // const char* latencySleepModes[] = { "Auto", "True", "False" };
-            // ImGui::Combo("Latency Sleep", &config.dxvk_latencySleep, latencySleepModes, 3);
-
-            // ImGui::InputInt("Latency Tolerance (us)", &config.dxvk_latencyTolerance);
-
-            // const char* autoBool[] = { "Auto", "True", "False" };
-            // ImGui::Combo("Disable NV_low_latency2", &config.dxvk_disableNvLowLatency2, autoBool, 3);
-
-            // ImGui::Combo("Tear Free", &config.dxvk_tearFree, autoBool, 3);
-
-            // ImGui::Combo("Tiler Mode", &config.dxvk_tilerMode, autoBool, 3);
-
-            // ImGui::Checkbox("Zero Mapped Memory", &config.dxvk_zeroMappedMemory);
-
-        }
-        
-        bool changed = false;
-
-        if (ImGui::CollapsingHeader("MTU Settings — Super Resolution", ImGuiTreeNodeFlags_DefaultOpen)) {
-            if (g_mtuGetConfig == nullptr) {
-                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.4f, 0.4f, 1.0f));
-                ImGui::TextWrapped("WARNING: mtu_upscaler.dll not found. Scaling restricted.");
-                ImGui::PopStyleColor();
-                ImGui::Separator();
-            }
-            if (g_mtuGetConfig != nullptr) {
-    
-                // --- Upscaling Section ---
-                if (ImGui::CollapsingHeader("Upscaling", ImGuiTreeNodeFlags_DefaultOpen)) {
-                    const char* upscalingMethods[] = { "FSR 2.2", "FSR 2.1", "DLSS (Stub)", "Off" };
-                    int currentMethod = 0; // Fixed for now as we are FSR 2.2 focused
-                    if (ImGui::Combo("Upscaling", &currentMethod, upscalingMethods, IM_ARRAYSIZE(upscalingMethods))) {
-                        m_config.enabled = (currentMethod != 3);
-                        changed = true;
-                    }
-        
-                    const char* scaleModes[] = { "Quality", "Balanced", "Performance", "Ultra Performance" };
-                    if (ImGui::Combo("Scale mode", &m_config.qualityPreset, scaleModes, IM_ARRAYSIZE(scaleModes))) {
-                        changed = true;
-                    }
-        
-                    if (ImGui::SliderFloat("Mip LOD bias", &m_config.mipBiasOffset, -5.0f, 5.0f, "%.3f")) {
-                        changed = true;
-                        if (m_onMipBiasChange)
-                            m_onMipBiasChange(m_config.mipBiasOffset);
-                    }
-        
-                    if (ImGui::Checkbox("Dynamic resolution", &m_config.dynamicResolution)) {
-                        changed = true;
-                    }
-        
-                    const char* maskModes[] = { "Manual Reactive Mask Generation", "Auto Mask", "Off" };
-                    if (ImGui::Combo("Reactive Mask", &m_config.reactiveMaskMode, maskModes, IM_ARRAYSIZE(maskModes))) {
-                        changed = true;
-                    }
-        
-                    if (ImGui::Checkbox("Use Transparency and Composition Mask", &m_config.useTransparencyMask)) {
-                        changed = true;
-                    }
-                }
-        
-                // --- Dev Options Section ---
-                if (ImGui::CollapsingHeader("Dev Options", ImGuiTreeNodeFlags_DefaultOpen)) {
-                    static bool apiDebug = false;
-                    ImGui::Checkbox("Enable API Debug Checking", &apiDebug);
-        
-                    if (ImGui::Button("Reset accumulation")) {
-                        // Future: trigger FSR2 Reset
-                    }
-        
-                    if (ImGui::Checkbox("RCAS Sharpening", &m_config.enableSharpening)) {
-                        changed = true;
-                    }
-                    
-                    if (m_config.enableSharpening) {
-                        if (ImGui::SliderFloat("Sharpness", &m_config.sharpness, 0.0f, 1.0f)) {
-                            changed = true;
-                        }
-                    }
-        
-                    ImGui::Separator();
-                    
-                    // Resolution Info (Placeholder or fetched from swapchain)
-                    ImGui::TextDisabled("Render resolution: %dx%d", 
-                        (int)(m_device->adapter()->handle() ? 1280 : 0), // Placeholder
-                        (int)720);
-                    ImGui::TextDisabled("Display resolution: %dx%d", 1920, 1080);
-                }
-        
-                // --- Post-Processing Section ---
-                if (ImGui::CollapsingHeader("PostProcessing", 0)) {
-                    const char* tonemappers[] = { "AMD Tonemapper", "Reinhard", "None" };
-                    static int currentTonemapper = 0;
-                    ImGui::Combo("Tonemapper", &currentTonemapper, tonemappers, IM_ARRAYSIZE(tonemappers));
-        
-                    if (ImGui::SliderFloat("Exposure", &m_config.exposureScale, 0.1f, 10.0f, "%.3f")) {
-                        changed = true;
-                    }
-                    
-                    ImGui::Checkbox("Auto Exposure", &m_config.autoExposure);
-                }
-        
-                // --- Magnifier Section ---
-                if (ImGui::CollapsingHeader("Magnifier", 0)) {
-                    static bool showMagnifier = false;
-                    static bool lockMagnifier = false;
-                    ImGui::Checkbox("Show Magnifier (M)", &showMagnifier);
-                    ImGui::Checkbox("Lock Position (L)", &lockMagnifier);
-                }
-        
-                if (changed) {
-                    syncConfigToPlugin();
-                }
-        
-                // ImGui::Separator();
-                // if (ImGui::Button("Save Configuration")) {
-                //     if (g_mtuSaveConfig) g_mtuSaveConfig();
-                // }
-            }
-        }
-
-        ImGui::SetCursorPosY(ImGui::GetWindowHeight() - 25);
-        ImGui::TextDisabled("MTU v1.0 | Press F12 to toggle overlay");
-    }
-    ImGui::End();
-  }
-
-  void MtuOverlay::syncConfigFromPlugin() {
-    if (g_mtuGetConfig)
-        g_mtuGetConfig(&m_config);
-  }
-
-  void MtuOverlay::syncConfigToPlugin() {
-    if (g_mtuSetConfig)
-        g_mtuSetConfig(&m_config);
-  }
-
-  void saveDxvkConfig(const std::map<std::string, std::string>& options) {
-
-    std::ofstream file("dxvk.conf", std::ios::trunc);
-
-    if (!file.is_open()) {
-      Logger::info("DXVK: Failed to write dxvk.conf");
-      return;
-    }
-
-    for (const auto& [key, value] : options) {
-      file << key << " = " << value << "\n";
-    }
-
-    file.close();
-
-    Logger::info("DXVK: dxvk.conf updated. Restart required.");
-  }
+  ImGui::End();
+}
 
 }
