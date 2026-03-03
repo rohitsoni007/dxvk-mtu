@@ -128,11 +128,11 @@ namespace dxvk {
     
     // Create descriptor pool for ImGui
     std::vector<VkDescriptorPoolSize> poolSizes = {
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 }
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 8 }
     };
     VkDescriptorPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
     poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-    poolInfo.maxSets = 1;
+    poolInfo.maxSets = 8;
     poolInfo.poolSizeCount = (uint32_t)poolSizes.size();
     poolInfo.pPoolSizes = poolSizes.data();
     
@@ -142,11 +142,14 @@ namespace dxvk {
     }
 
     ImGui_ImplVulkan_InitInfo initInfo = {};
+    initInfo.ApiVersion = VK_API_VERSION_1_3;
 
     // Load Vulkan functions dynamically to avoid linker issues with DXVK's dynamic loader
     ImGui_ImplVulkan_LoadFunctions(VK_API_VERSION_1_3, [](const char* function_name, void* user_data) {
         auto device = static_cast<DxvkDevice*>(user_data);
-        return device->adapter()->vki()->sym(function_name);
+        auto pfn = device->vkd()->sym(function_name);
+        if (!pfn) pfn = device->adapter()->vki()->sym(function_name);
+        return pfn;
     }, m_device.ptr());
 
     initInfo.Instance = m_device->adapter()->vki()->instance();
