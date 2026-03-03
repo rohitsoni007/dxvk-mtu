@@ -14,25 +14,24 @@ public:
   MtuOverlay(const Rc<DxvkDevice>& device, HWND window);
   ~MtuOverlay();
 
-  void update(); // CPU side UI build
-  void render(DxvkContext* ctx, const Rc<DxvkImageView>& target);
+  void update();
+  void render(const DxvkContextObjects& ctx);
 
-  bool processMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+  bool processMessage(HWND hWnd, UINT msg,
+                      WPARAM wParam, LPARAM lParam);
 
 private:
-  void init(DxvkContext* ctx, VkFormat format);
+  void init(const DxvkContextObjects& ctx);
   void renderUI();
 
   Rc<DxvkDevice> m_device;
-  HWND           m_window;
+  HWND m_window;
 
-  ImGuiContext*  m_imgui = nullptr;
-
+  ImGuiContext* m_imgui = nullptr;
   VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
 
-  bool m_visible        = false;
-  bool m_initialized    = false;
-  bool m_fontsUploaded  = false;
+  bool m_visible     = false;
+  bool m_initialized = false;
 
   std::mutex m_mutex;
 };

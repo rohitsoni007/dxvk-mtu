@@ -1001,7 +1001,7 @@ namespace dxvk {
 
         if (cOverlay) {
           cOverlay->update();
-          cOverlay->render(contextObjects, cSrcView);
+          cOverlay->render(contextObjects);
         }
 
         cBlitter->present(contextObjects,

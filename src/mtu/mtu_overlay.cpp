@@ -47,7 +47,7 @@ MtuOverlay::~MtuOverlay() {
   ImGui::DestroyContext(m_imgui);
 }
 
-void MtuOverlay::init(DxvkContext* ctx, VkFormat format) {
+void MtuOverlay::init(const DxvkContextObjects& ctx) {
   auto vkd = m_device->vkd();
 
   VkDescriptorPoolSize poolSize = {
@@ -69,7 +69,7 @@ void MtuOverlay::init(DxvkContext* ctx, VkFormat format) {
         &poolInfo,
         nullptr,
         &m_descriptorPool) != VK_SUCCESS) {
-    Logger::err("MTU Overlay: Failed to create descriptor pool");
+    Logger::err("MTU Overlay: descriptor pool failed");
     return;
   }
 
@@ -98,14 +98,15 @@ void MtuOverlay::init(DxvkContext* ctx, VkFormat format) {
 }
 
 void MtuOverlay::update() {
-  std::lock_guard<std::mutex> lock(m_mutex);
-
   if (!m_visible)
     return;
+
+  std::lock_guard<std::mutex> lock(m_mutex);
 
   ImGui::SetCurrentContext(m_imgui);
 
   ImGui_ImplWin32_NewFrame();
+  ImGui_ImplVulkan_NewFrame();
   ImGui::NewFrame();
 
   renderUI();
@@ -114,8 +115,7 @@ void MtuOverlay::update() {
 }
 
 void MtuOverlay::render(
-  DxvkContext* ctx,
-  const Rc<DxvkImageView>& target) {
+  const DxvkContextObjects& ctx) {
 
   if (!m_visible)
     return;
@@ -123,16 +123,10 @@ void MtuOverlay::render(
   ImGui::SetCurrentContext(m_imgui);
 
   if (!m_initialized)
-    init(ctx, target->image()->info().format);
+    init(ctx);
 
   VkCommandBuffer cmd =
-    ctx->getCmdBuffer(DxvkCmdBuffer::ExecBuffer);
-
-  if (!m_fontsUploaded) {
-    ImGui_ImplVulkan_CreateFontsTexture(cmd);
-    ImGui_ImplVulkan_DestroyFontUploadObjects();
-    m_fontsUploaded = true;
-  }
+    ctx.cmd->getCmdBuffer(DxvkCmdBuffer::ExecBuffer);
 
   ImGui_ImplVulkan_RenderDrawData(
     ImGui::GetDrawData(),
@@ -140,10 +134,8 @@ void MtuOverlay::render(
 }
 
 bool MtuOverlay::processMessage(
-  HWND hWnd,
-  UINT msg,
-  WPARAM wParam,
-  LPARAM lParam) {
+  HWND hWnd, UINT msg,
+  WPARAM wParam, LPARAM lParam) {
 
   if (msg == WM_KEYDOWN && wParam == VK_F12) {
     m_visible = !m_visible;
@@ -160,12 +152,14 @@ bool MtuOverlay::processMessage(
 }
 
 void MtuOverlay::renderUI() {
-  ImGui::SetNextWindowSize(ImVec2(400, 300), ImGuiCond_FirstUseEver);
+  ImGui::SetNextWindowSize(
+    ImVec2(400, 200),
+    ImGuiCond_FirstUseEver);
 
   if (ImGui::Begin("MTU Overlay", &m_visible)) {
     ImGui::Text("DXVK D3D9 Stable Overlay");
     ImGui::Separator();
-    ImGui::Text("Resident Evil 6 / Rev2 Safe Mode");
+    ImGui::Text("RE6 / Rev2 Safe Mode");
     ImGui::Text("Press F12 to toggle");
   }
 
