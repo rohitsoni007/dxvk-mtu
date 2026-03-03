@@ -968,36 +968,36 @@ namespace dxvk {
         // Blit back buffer onto Vulkan swap chain
         auto contextObjects = ctx->beginExternalRendering();
 
-        // MTU: invoke upscaler plugin before the blit
-        if (cMtuEnabled && cMtuInitialized) {
-          MtuRenderParams mtuParams = {};
-          // Jitter and FrameTime would ideally be tracked here
-          mtuParams.cameraNear = cNar;
-          mtuParams.cameraFar  = cFar;
-          mtuParams.cameraFovAngleVertical = cFov;
-          mtuParams.frameTimeDelta = 0.016f; // Placeholder
+        // // MTU: invoke upscaler plugin before the blit
+        // if (cMtuEnabled && cMtuInitialized) {
+        //   MtuRenderParams mtuParams = {};
+        //   // Jitter and FrameTime would ideally be tracked here
+        //   mtuParams.cameraNear = cNar;
+        //   mtuParams.cameraFar  = cFar;
+        //   mtuParams.cameraFovAngleVertical = cFov;
+        //   mtuParams.frameTimeDelta = 0.016f; // Placeholder
           
-          VkImage srcImage = cSrcView->image()->handle();
-          VkImage dstImage = cDstView->image()->handle();
-          VkExtent2D srcExtent = { cSrcRect.extent.width, cSrcRect.extent.height };
-          VkExtent2D dstExtent = { cDstRect.extent.width, cDstRect.extent.height };
+        //   VkImage srcImage = cSrcView->image()->handle();
+        //   VkImage dstImage = cDstView->image()->handle();
+        //   VkExtent2D srcExtent = { cSrcRect.extent.width, cSrcRect.extent.height };
+        //   VkExtent2D dstExtent = { cDstRect.extent.width, cDstRect.extent.height };
 
-          if (!srcImage || !dstImage)
-              return;
+        //   if (!srcImage || !dstImage)
+        //       return;
 
-          if (srcExtent.width == 0 || srcExtent.height == 0)
-              return;
+        //   if (srcExtent.width == 0 || srcExtent.height == 0)
+        //       return;
               
-          g_mtuProcess(contextObjects.cmd->getCmdBuffer(DxvkCmdBuffer::ExecBuffer),
-                       cDeviceHandle,
-                       srcImage,
-                       dstImage,
-                       cDepthImageHandle,
-                       cDepthFormat,
-                       srcExtent,
-                       dstExtent,
-                       &mtuParams);
-        }
+        //   g_mtuProcess(contextObjects.cmd->getCmdBuffer(DxvkCmdBuffer::ExecBuffer),
+        //                cDeviceHandle,
+        //                srcImage,
+        //                dstImage,
+        //                cDepthImageHandle,
+        //                cDepthFormat,
+        //                srcExtent,
+        //                dstExtent,
+        //                &mtuParams);
+        // }
 
         if (cOverlay) {
           cOverlay->update();

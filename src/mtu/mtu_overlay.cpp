@@ -47,12 +47,11 @@ MtuOverlay::~MtuOverlay() {
   ImGui::DestroyContext(m_imgui);
 }
 
-void MtuOverlay::init(const DxvkContextObjects& ctx) {
+void MtuOverlay::init() {
   auto vkd = m_device->vkd();
 
-  VkDescriptorPoolSize poolSize = {
-    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-    100
+  VkDescriptorPoolSize poolSizes[] = {
+    { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 64 }
   };
 
   VkDescriptorPoolCreateInfo poolInfo = {
@@ -60,16 +59,16 @@ void MtuOverlay::init(const DxvkContextObjects& ctx) {
   };
 
   poolInfo.flags         = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-  poolInfo.maxSets       = 100;
+  poolInfo.maxSets       = 64;
   poolInfo.poolSizeCount = 1;
-  poolInfo.pPoolSizes    = &poolSize;
+  poolInfo.pPoolSizes    = poolSizes;
 
   if (vkd->vkCreateDescriptorPool(
         vkd->device(),
         &poolInfo,
         nullptr,
         &m_descriptorPool) != VK_SUCCESS) {
-    Logger::err("MTU Overlay: descriptor pool failed");
+    Logger::err("MTU Overlay: descriptor pool creation failed");
     return;
   }
 
@@ -101,8 +100,6 @@ void MtuOverlay::update() {
   if (!m_visible)
     return;
 
-  std::lock_guard<std::mutex> lock(m_mutex);
-
   ImGui::SetCurrentContext(m_imgui);
 
   ImGui_ImplWin32_NewFrame();
@@ -123,7 +120,7 @@ void MtuOverlay::render(
   ImGui::SetCurrentContext(m_imgui);
 
   if (!m_initialized)
-    init(ctx);
+    init();
 
   VkCommandBuffer cmd =
     ctx.cmd->getCmdBuffer(DxvkCmdBuffer::ExecBuffer);
@@ -134,8 +131,10 @@ void MtuOverlay::render(
 }
 
 bool MtuOverlay::processMessage(
-  HWND hWnd, UINT msg,
-  WPARAM wParam, LPARAM lParam) {
+  HWND hWnd,
+  UINT msg,
+  WPARAM wParam,
+  LPARAM lParam) {
 
   if (msg == WM_KEYDOWN && wParam == VK_F12) {
     m_visible = !m_visible;
@@ -153,13 +152,12 @@ bool MtuOverlay::processMessage(
 
 void MtuOverlay::renderUI() {
   ImGui::SetNextWindowSize(
-    ImVec2(400, 200),
+    ImVec2(350, 150),
     ImGuiCond_FirstUseEver);
 
   if (ImGui::Begin("MTU Overlay", &m_visible)) {
-    ImGui::Text("DXVK D3D9 Stable Overlay");
+    ImGui::Text("DXVK D3D9 Overlay");
     ImGui::Separator();
-    ImGui::Text("RE6 / Rev2 Safe Mode");
     ImGui::Text("Press F12 to toggle");
   }
 
