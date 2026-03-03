@@ -149,7 +149,7 @@ if platform == 'windows'
   dxvk_extra_deps += [
     cpp.find_library('setupapi', required: true),
     cpp.find_library('dwmapi', required: true, dirs: dwmapi_dirs),
-    dependency('vulkan'),
+    vulkan_dep,
   ]
 endif
 if platform == 'linux'

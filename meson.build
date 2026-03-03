@@ -174,6 +174,29 @@ endif
 
 dxvk_include_path = include_directories(dxvk_include_dirs)
 
+if platform == 'windows'
+  potential_vulkan_dirs = ['D:/VulkanSDK/1.3.296.0/Lib', 'D:/ming/w64devkit/x86_64-w64-mingw32/lib']
+  vulkan_dirs = []
+  foreach d : potential_vulkan_dirs
+    if fs.is_dir(d)
+      vulkan_dirs += d
+    endif
+  endforeach
+
+  vulkan_lib = cpp.find_library('vulkan-1', required: false, dirs: vulkan_dirs)
+  if not vulkan_lib.found()
+    vulkan_lib = cpp.find_library('vulkan-1', required: true)
+  endif
+  
+  vulkan_dep = declare_dependency(
+    include_directories: dxvk_include_path,
+    dependencies: vulkan_lib,
+  )
+else
+  vulkan_dep = dependency('vulkan')
+endif
+meson.override_dependency('vulkan', vulkan_dep)
+
 add_project_arguments(cpp.get_supported_arguments(compiler_args), language: 'cpp')
 add_project_arguments(cc.get_supported_arguments(compiler_args), language: 'c')
 add_project_link_arguments(cpp.get_supported_link_arguments(link_args), language: 'cpp')
