@@ -144,7 +144,7 @@ namespace dxvk {
   inline bool g_mtuAttempted = false;
 
   inline bool loadMtuPlugin() {
-
+    /*
     if (g_mtuLoaded)
       return true;
 
@@ -193,6 +193,8 @@ namespace dxvk {
 
     Logger::info("MTU: Successfully loaded mtu_upscaler.dll");
     return true;
+    */
+    return false;
   }
 
   inline void destroyMtuPlugin() {
