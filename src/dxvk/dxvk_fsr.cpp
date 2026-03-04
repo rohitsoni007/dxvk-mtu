@@ -139,12 +139,24 @@ namespace dxvk {
           VkRect2D            dstRect) {
 
     EasuPushConstants push = {};
+    // FsrEasuConOffset(
+    //   push.con0, push.con1, push.con2, push.con3,
+    //   static_cast<float>(dstRect.extent.width), static_cast<float>(dstRect.extent.height),
+    //   static_cast<float>(inputView->image()->info().extent.width), static_cast<float>(inputView->image()->info().extent.height),
+    //   static_cast<float>(srcRect.extent.width), static_cast<float>(srcRect.extent.height),
+    //   static_cast<float>(srcRect.offset.x), static_cast<float>(srcRect.offset.y)
+    // );
+
     FsrEasuConOffset(
-      push.con0, push.con1, push.con2, push.con3,
-      static_cast<float>(dstRect.extent.width), static_cast<float>(dstRect.extent.height),
-      static_cast<float>(inputView->image()->info().extent.width), static_cast<float>(inputView->image()->info().extent.height),
-      static_cast<float>(srcRect.extent.width), static_cast<float>(srcRect.extent.height),
-      static_cast<float>(srcRect.offset.x), static_cast<float>(srcRect.offset.y)
+        push.con0, push.con1, push.con2, push.con3,
+        static_cast<float>(srcRect.extent.width),
+        static_cast<float>(srcRect.extent.height),
+        static_cast<float>(inputView->image()->info().extent.width),
+        static_cast<float>(inputView->image()->info().extent.height),
+        static_cast<float>(dstRect.extent.width),
+        static_cast<float>(dstRect.extent.height),
+        static_cast<float>(srcRect.offset.x),
+        static_cast<float>(srcRect.offset.y)
     );
 
     VkDescriptorSet dset = ctx.descriptorPool->alloc(m_descriptorSetLayout);
@@ -216,8 +228,12 @@ namespace dxvk {
     barrierRead.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
     barrierRead.dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
     barrierRead.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
-    barrierRead.oldLayout = inputView->image()->pickLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-    barrierRead.newLayout = inputView->image()->pickLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    // barrierRead.oldLayout = inputView->image()->pickLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    // barrierRead.newLayout = inputView->image()->pickLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    // barrierRead.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+    // barrierRead.oldLayout = inputView->image()->info().layout;
+    barrierRead.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    barrierRead.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     barrierRead.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrierRead.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrierRead.image = inputView->image()->handle();
@@ -228,8 +244,12 @@ namespace dxvk {
     barrierWrite.srcAccessMask = VK_ACCESS_2_MEMORY_READ_BIT;
     barrierWrite.dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
     barrierWrite.dstAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
-    barrierWrite.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    barrierWrite.newLayout = outputView->image()->pickLayout(VK_IMAGE_LAYOUT_GENERAL);
+    // barrierWrite.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    // barrierWrite.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+    // barrierWrite.newLayout = outputView->image()->pickLayout(VK_IMAGE_LAYOUT_GENERAL);
+    barrierWrite.oldLayout = outputView->image()->info().layout;
+    barrierWrite.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+
     barrierWrite.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrierWrite.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrierWrite.image = outputView->image()->handle();
@@ -292,7 +312,12 @@ namespace dxvk {
       rcasDepInfo.imageMemoryBarrierCount = 1;
       rcasDepInfo.pImageMemoryBarriers = &rcasBarrier;
 
-      ctx.cmd->cmdPipelineBarrier(DxvkCmdBuffer::ExecBuffer, &rcasDepInfo);
+      //   ctx.cmd->cmdPipelineBarrier(DxvkCmdBuffer::ExecBuffer, &rcasDepInfo);
+      VkDependencyInfo easuToRcas = { VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+      easuToRcas.imageMemoryBarrierCount = 1;
+      easuToRcas.pImageMemoryBarriers = &rcasBarrier;
+
+      ctx.cmd->cmdPipelineBarrier(DxvkCmdBuffer::ExecBuffer, &easuToRcas);
 
       // EASU -> RCAS Intermediate
       dispatchEasu(ctx, inputView, srcRect, m_rcasView, { {0, 0}, dstRect.extent });
