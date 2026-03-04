@@ -10,6 +10,8 @@
 
 #include "../dxvk/dxvk_device.h"
 #include "../dxvk/dxvk_context.h"
+#include "../dxvk/dxvk_fsr.h"
+#include <memory>
 
 namespace dxvk {
 
@@ -241,6 +243,10 @@ namespace dxvk {
 
     Rc<DxvkImage>       m_hudImage;
     Rc<DxvkImageView>   m_hudView;
+
+    Rc<DxvkImage>       m_fsrImage;
+    Rc<DxvkImageView>   m_fsrView;
+    std::unique_ptr<DxvkFsr> m_fsr;
 
     VkDescriptorSetLayout m_setLayout = VK_NULL_HANDLE;
     VkPipelineLayout      m_pipelineLayout = VK_NULL_HANDLE;

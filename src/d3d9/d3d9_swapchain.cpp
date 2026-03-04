@@ -13,6 +13,20 @@ namespace dxvk {
     return uint16_t(65535.0f * x);
   }
 
+  static void ApplyFsrScale(const Rc<DxvkDevice>& device, D3DPRESENT_PARAMETERS& presentParams) {
+    if (device->config().enableFsr1 && device->config().fsr1Quality >= 0 && device->config().fsr1Quality <= 3) {
+      float scale = 1.0f;
+      switch (device->config().fsr1Quality) {
+        case 0: scale = 0.50f; break; // Performance
+        case 1: scale = 0.59f; break; // Balanced
+        case 2: scale = 0.67f; break; // Quality
+        case 3: scale = 0.77f; break; // Ultra Quality
+      }
+      presentParams.BackBufferWidth  = std::max(1u, uint32_t(presentParams.BackBufferWidth * scale));
+      presentParams.BackBufferHeight = std::max(1u, uint32_t(presentParams.BackBufferHeight * scale));
+    }
+  }
+
   D3D9SwapChainEx::D3D9SwapChainEx(
           D3D9DeviceEx*          pDevice,
           D3DPRESENT_PARAMETERS* pPresentParams,
@@ -25,6 +39,7 @@ namespace dxvk {
     , m_swapchainExt     (this) {
     this->NormalizePresentParameters(pPresentParams);
     m_presentParams = *pPresentParams;
+    ApplyFsrScale(m_device, m_presentParams);
     m_window = m_presentParams.hDeviceWindow;
 
     UpdateWindowCtx();
@@ -633,6 +648,7 @@ namespace dxvk {
     }
 
     m_presentParams = *pPresentParams;
+    ApplyFsrScale(m_device, m_presentParams);
 
     if (changeFullscreen)
       SetGammaRamp(0, &m_ramp);

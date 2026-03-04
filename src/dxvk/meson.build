@@ -37,6 +37,9 @@ dxvk_shaders = files([
   'shaders/dxvk_fullscreen_vert.vert',
   'shaders/dxvk_fullscreen_layer_vert.vert',
 
+  'shaders/dxvk_fsr1_easu.comp',
+  'shaders/dxvk_fsr1_rcas.comp',
+
   'shaders/dxvk_image_to_buffer_ds.comp',
   'shaders/dxvk_image_to_buffer_f.comp',
 
@@ -85,6 +88,7 @@ dxvk_src = [
   'dxvk_fence.cpp',
   'dxvk_format.cpp',
   'dxvk_framebuffer.cpp',
+  'dxvk_fsr.cpp',
   'dxvk_gpu_event.cpp',
   'dxvk_gpu_query.cpp',
   'dxvk_graphics.cpp',

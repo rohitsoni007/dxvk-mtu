@@ -61,6 +61,15 @@ namespace dxvk {
     /// Whether to enable tiler optimizations
     Tristate tilerMode = Tristate::Auto;
 
+    /// Enable AMD FSR1 upscaling
+    bool enableFsr1 = false;
+
+    /// FSR1 upscaler quality mode (0=Performance, 1=Balanced, 2=Quality, 3=Ultra Quality)
+    int32_t fsr1Quality = 0;
+
+    /// FSR1 RCAS sharpening attenuation (0.0=max sharpness, 2.0=min sharpness)
+    float fsr1Sharpness = 0.5f;
+
     // Device name
     std::string deviceFilter;
   };

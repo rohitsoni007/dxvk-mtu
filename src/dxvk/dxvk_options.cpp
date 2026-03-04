@@ -20,6 +20,9 @@ namespace dxvk {
     allowFse              = config.getOption<bool>    ("dxvk.allowFse",               false);
     deviceFilter          = config.getOption<std::string>("dxvk.deviceFilter",        "");
     tilerMode             = config.getOption<Tristate>("dxvk.tilerMode",              Tristate::Auto);
+    enableFsr1            = config.getOption<bool>    ("dxvk.enableFsr1",             false);
+    fsr1Quality           = config.getOption<int32_t> ("dxvk.fsr1Quality",            0);
+    fsr1Sharpness         = config.getOption<float>   ("dxvk.fsr1Sharpness",          0.5f);
   }
 
 }

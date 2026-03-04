@@ -536,6 +536,19 @@ namespace dxvk {
     D3D11_COMMON_TEXTURE_DESC desc;
     desc.Width              = std::max(m_desc.Width,  1u);
     desc.Height             = std::max(m_desc.Height, 1u);
+
+    if (m_device->config().enableFsr1 && m_device->config().fsr1Quality >= 0 && m_device->config().fsr1Quality <= 3) {
+      float scale = 1.0f;
+      switch (m_device->config().fsr1Quality) {
+        case 0: scale = 0.50f; break; // Performance
+        case 1: scale = 0.59f; break; // Balanced
+        case 2: scale = 0.67f; break; // Quality
+        case 3: scale = 0.77f; break; // Ultra Quality
+      }
+      desc.Width  = std::max(1u, uint32_t(desc.Width * scale));
+      desc.Height = std::max(1u, uint32_t(desc.Height * scale));
+    }
+
     desc.Depth              = 1;
     desc.MipLevels          = 1;
     desc.ArraySize          = 1;
