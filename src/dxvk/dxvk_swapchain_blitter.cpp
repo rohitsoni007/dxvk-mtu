@@ -20,8 +20,8 @@ namespace dxvk {
     m_cursorSetLayout(createCursorSetLayout()),
     m_cursorPipelineLayout(createCursorPipelineLayout()) {
     
-    if (m_device->config().enableFsr1)
-      m_fsr = std::make_unique<DxvkFsr>(m_device.ptr());
+    // if (m_device->config().enableFsr1)
+    //   m_fsr = std::make_unique<DxvkFsr>(m_device.ptr());
 
     this->createSampler();
     this->createShaders();
@@ -134,56 +134,56 @@ namespace dxvk {
     Rc<DxvkImageView> actualSrcView = srcView;
     VkRect2D actualSrcRect = srcRect;
     
-    if (m_fsr && dstRect.extent.width > srcRect.extent.width && dstRect.extent.height > srcRect.extent.height) {
-      if (!m_fsrImage || m_fsrImage->info().extent.width != dstRect.extent.width || m_fsrImage->info().extent.height != dstRect.extent.height) {
-        DxvkImageCreateInfo imageInfo = { };
-        imageInfo.type          = VK_IMAGE_TYPE_2D;
-        imageInfo.format        = VK_FORMAT_R16G16B16A16_SFLOAT;
-        imageInfo.sampleCount   = VK_SAMPLE_COUNT_1_BIT;
-        imageInfo.extent        = { dstRect.extent.width, dstRect.extent.height, 1u };
-        imageInfo.mipLevels     = 1;
-        imageInfo.numLayers     = 1;
-        imageInfo.usage         = VK_IMAGE_USAGE_TRANSFER_DST_BIT
-                                | VK_IMAGE_USAGE_STORAGE_BIT
-                                | VK_IMAGE_USAGE_SAMPLED_BIT;
-        imageInfo.stages        = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
-                                | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
-                                | VK_PIPELINE_STAGE_TRANSFER_BIT;
-        imageInfo.access        = VK_ACCESS_SHADER_WRITE_BIT
-                                | VK_ACCESS_SHADER_READ_BIT
-                                | VK_ACCESS_TRANSFER_WRITE_BIT;
-        imageInfo.tiling        = VK_IMAGE_TILING_OPTIMAL;
-        imageInfo.layout        = VK_IMAGE_LAYOUT_GENERAL;
-        imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        imageInfo.debugName     = "Swapchain FSR Image";
+    // if (m_fsr && dstRect.extent.width > srcRect.extent.width && dstRect.extent.height > srcRect.extent.height) {
+    //   if (!m_fsrImage || m_fsrImage->info().extent.width != dstRect.extent.width || m_fsrImage->info().extent.height != dstRect.extent.height) {
+    //     DxvkImageCreateInfo imageInfo = { };
+    //     imageInfo.type          = VK_IMAGE_TYPE_2D;
+    //     imageInfo.format        = VK_FORMAT_R16G16B16A16_SFLOAT;
+    //     imageInfo.sampleCount   = VK_SAMPLE_COUNT_1_BIT;
+    //     imageInfo.extent        = { dstRect.extent.width, dstRect.extent.height, 1u };
+    //     imageInfo.mipLevels     = 1;
+    //     imageInfo.numLayers     = 1;
+    //     imageInfo.usage         = VK_IMAGE_USAGE_TRANSFER_DST_BIT
+    //                             | VK_IMAGE_USAGE_STORAGE_BIT
+    //                             | VK_IMAGE_USAGE_SAMPLED_BIT;
+    //     imageInfo.stages        = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
+    //                             | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+    //                             | VK_PIPELINE_STAGE_TRANSFER_BIT;
+    //     imageInfo.access        = VK_ACCESS_SHADER_WRITE_BIT
+    //                             | VK_ACCESS_SHADER_READ_BIT
+    //                             | VK_ACCESS_TRANSFER_WRITE_BIT;
+    //     imageInfo.tiling        = VK_IMAGE_TILING_OPTIMAL;
+    //     imageInfo.layout        = VK_IMAGE_LAYOUT_GENERAL;
+    //     imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    //     imageInfo.debugName     = "Swapchain FSR Image";
 
-        m_fsrImage = m_device->createImage(imageInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    //     m_fsrImage = m_device->createImage(imageInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-        DxvkImageViewKey viewInfo = { };
-        viewInfo.viewType       = VK_IMAGE_VIEW_TYPE_2D;
-        viewInfo.usage          = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-        viewInfo.format         = imageInfo.format;
-        viewInfo.aspects        = VK_IMAGE_ASPECT_COLOR_BIT;
-        viewInfo.mipIndex       = 0u;
-        viewInfo.mipCount       = 1u;
-        viewInfo.layerIndex     = 0u;
-        viewInfo.layerCount     = 1u;
+    //     DxvkImageViewKey viewInfo = { };
+    //     viewInfo.viewType       = VK_IMAGE_VIEW_TYPE_2D;
+    //     viewInfo.usage          = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    //     viewInfo.format         = imageInfo.format;
+    //     viewInfo.aspects        = VK_IMAGE_ASPECT_COLOR_BIT;
+    //     viewInfo.mipIndex       = 0u;
+    //     viewInfo.mipCount       = 1u;
+    //     viewInfo.layerIndex     = 0u;
+    //     viewInfo.layerCount     = 1u;
 
-        m_fsrView = m_fsrImage->createView(viewInfo);
-      }
+    //     m_fsrView = m_fsrImage->createView(viewInfo);
+    //   }
 
-      ctx.cmd->cmdEndRendering();
+    //   ctx.cmd->cmdEndRendering();
 
-      m_fsr->dispatch(ctx, srcView, srcRect, m_fsrView, dstRect, m_device->config().fsr1Sharpness);
-      actualSrcView = m_fsrView;
-      actualSrcRect.offset = { 0, 0 };
-      actualSrcRect.extent = dstRect.extent;
+    //   m_fsr->dispatch(ctx, srcView, srcRect, m_fsrView, dstRect, m_device->config().fsr1Sharpness);
+    //   actualSrcView = m_fsrView;
+    //   actualSrcRect.offset = { 0, 0 };
+    //   actualSrcRect.extent = dstRect.extent;
       
-      // We must track the new image
-      ctx.cmd->track(m_fsrImage, DxvkAccess::Write);
+    //   // We must track the new image
+    //   ctx.cmd->track(m_fsrImage, DxvkAccess::Write);
 
-      ctx.cmd->cmdBeginRendering(&renderInfo);
-    }
+    //   ctx.cmd->cmdBeginRendering(&renderInfo);
+    // }
 
     performDraw(ctx, dstView, dstRect,
       actualSrcView, actualSrcRect, composite);
