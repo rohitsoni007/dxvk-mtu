@@ -11,7 +11,6 @@ layout(push_constant) uniform PushConstants {
 
 layout(set = 0, binding = 0) uniform texture2D InputTexture;
 layout(set = 0, binding = 1) uniform writeonly restrict image2D OutputImage;
-layout(set = 0, binding = 2) uniform sampler InputSampler;
 
 #define A_GPU 1
 #define A_GLSL 1
