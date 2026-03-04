@@ -4,6 +4,7 @@
 #include "dxvk_presenter.h"
 
 #include "../wsi/wsi_window.h"
+#include "dxvk_fsr.h"
 
 namespace dxvk {
 
@@ -12,6 +13,8 @@ namespace dxvk {
 
     { VK_COLOR_SPACE_HDR10_ST2084_EXT, VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT },
   }};
+
+  std::unique_ptr<DxvkFsr> m_fsr;
 
 
   Presenter::Presenter(
@@ -26,6 +29,7 @@ namespace dxvk {
     // Only enable FSE if the user explicitly opts in. On Windows, FSE
     // is required to support VRR or HDR, but blocks alt-tabbing or
     // overlapping windows, which breaks a number of games.
+    m_fsr = std::make_unique<DxvkFsr>(device.ptr());
     m_fullscreenMode = m_device->config().allowFse
       ? VK_FULL_SCREEN_EXCLUSIVE_ALLOWED_EXT
       : VK_FULL_SCREEN_EXCLUSIVE_DISALLOWED_EXT;
@@ -195,6 +199,24 @@ namespace dxvk {
     if (m_device->features().extSwapchainMaintenance1.swapchainMaintenance1) {
       modeInfo.pNext = const_cast<void*>(std::exchange(info.pNext, &modeInfo));
       fenceInfo.pNext = const_cast<void*>(std::exchange(info.pNext, &fenceInfo));
+    }
+
+    if (m_fsr) {
+
+          auto srcImage = /* backbuffer view from context */;
+          auto dstImage = m_images.at(m_imageIndex);
+
+          VkRect2D srcRect = { {0,0}, {renderWidth, renderHeight} };
+          VkRect2D dstRect = { {0,0}, {swapchainWidth, swapchainHeight} };
+
+      m_fsr->dispatch(
+          ctx,
+          srcImage,
+          srcRect,
+          dstImage->createView(),
+          dstRect,
+          0.2f
+      );
     }
 
     VkResult status = m_vkd->vkQueuePresentKHR(
