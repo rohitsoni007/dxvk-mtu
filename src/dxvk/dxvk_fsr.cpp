@@ -82,9 +82,10 @@ namespace dxvk {
   VkDescriptorSetLayout DxvkFsr::createDescriptorSetLayout() const {
     auto vkd = m_device->vkd();
 
-    std::array<VkDescriptorSetLayoutBinding, 2> bindings = {{
+    std::array<VkDescriptorSetLayoutBinding, 3> bindings = {{
       { 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr },
-      { 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr }
+      { 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr },
+      { 2, VK_DESCRIPTOR_TYPE_SAMPLER,       1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr }
     }};
 
     VkDescriptorSetLayoutCreateInfo info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
@@ -141,9 +142,9 @@ namespace dxvk {
     EasuPushConstants push = {};
     FsrEasuConOffset(
       push.con0, push.con1, push.con2, push.con3,
-      static_cast<float>(dstRect.extent.width), static_cast<float>(dstRect.extent.height),
-      static_cast<float>(inputView->image()->info().extent.width), static_cast<float>(inputView->image()->info().extent.height),
       static_cast<float>(srcRect.extent.width), static_cast<float>(srcRect.extent.height),
+      static_cast<float>(inputView->image()->info().extent.width), static_cast<float>(inputView->image()->info().extent.height),
+      static_cast<float>(dstRect.extent.width), static_cast<float>(dstRect.extent.height),
       static_cast<float>(srcRect.offset.x), static_cast<float>(srcRect.offset.y)
     );
 
@@ -151,10 +152,12 @@ namespace dxvk {
 
     VkDescriptorImageInfo srcInfo = { VK_NULL_HANDLE, inputView->handle(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
     VkDescriptorImageInfo dstInfo = { VK_NULL_HANDLE, outputView->handle(), VK_IMAGE_LAYOUT_GENERAL };
+    VkDescriptorImageInfo samInfo = { m_sampler,      VK_NULL_HANDLE,      VK_IMAGE_LAYOUT_UNDEFINED };
 
-    std::array<VkWriteDescriptorSet, 2> writes = {{
+    std::array<VkWriteDescriptorSet, 3> writes = {{
       { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dset, 0, 0, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &srcInfo, nullptr, nullptr },
-      { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dset, 1, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, &dstInfo, nullptr, nullptr }
+      { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dset, 1, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, &dstInfo, nullptr, nullptr },
+      { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dset, 2, 0, 1, VK_DESCRIPTOR_TYPE_SAMPLER,       &samInfo, nullptr, nullptr }
     }};
     
     ctx.cmd->updateDescriptorSets(writes.size(), writes.data());
@@ -185,10 +188,12 @@ namespace dxvk {
 
     VkDescriptorImageInfo srcInfo = { VK_NULL_HANDLE, inputView->handle(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
     VkDescriptorImageInfo dstInfo = { VK_NULL_HANDLE, outputView->handle(), VK_IMAGE_LAYOUT_GENERAL };
+    VkDescriptorImageInfo samInfo = { m_sampler,      VK_NULL_HANDLE,      VK_IMAGE_LAYOUT_UNDEFINED };
 
-    std::array<VkWriteDescriptorSet, 2> writes = {{
+    std::array<VkWriteDescriptorSet, 3> writes = {{
       { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dset, 0, 0, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &srcInfo, nullptr, nullptr },
-      { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dset, 1, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, &dstInfo, nullptr, nullptr }
+      { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dset, 1, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, &dstInfo, nullptr, nullptr },
+      { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dset, 2, 0, 1, VK_DESCRIPTOR_TYPE_SAMPLER,       &samInfo, nullptr, nullptr }
     }};
     
     ctx.cmd->updateDescriptorSets(writes.size(), writes.data());
