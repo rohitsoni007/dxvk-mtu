@@ -593,6 +593,16 @@ namespace dxvk {
     uint32_t targetWidth  = uint32_t(dstImage->info().extent.width  / scale);
     uint32_t targetHeight = uint32_t(dstImage->info().extent.height / scale);
     Logger::info("FSR: enableFsr1");
+    Logger::info(str::format(
+      "FSR enabled = ",
+      m_device->config().enableFsr1));
+    Logger::info(str::format(
+      "FSR dispatch ",
+      dstImage->info().extent.width, "x", dstImage->info().extent.height,
+      " -> ",
+      targetWidth, "x", targetHeight,
+      " sharpness=", m_device->config().fsr1Sharpness));
+
     if (m_device->config().enableFsr1 &&
         srcImage != dstImage &&
         srcSubresource.aspectMask == VK_IMAGE_ASPECT_COLOR_BIT &&
