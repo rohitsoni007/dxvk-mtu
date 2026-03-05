@@ -8527,6 +8527,35 @@ namespace dxvk {
     D3D9Format backBufferFmt = EnumerateFormat(pPresentationParameters->BackBufferFormat);
     bool unlockedFormats = m_implicitSwapchain != nullptr && m_implicitSwapchain->HasFormatsUnlocked();
 
+    if (m_dxvkDevice->config().enableFsr1 &&
+    !pPresentationParameters->Windowed) {
+
+      float scale = 1.0f;
+  
+      switch (m_dxvkDevice->config().fsr1Quality) {
+        case 0: scale = 2.0f; break; // Performance
+        case 1: scale = 1.7f; break;
+        case 2: scale = 1.5f; break;
+        case 3: scale = 1.3f; break;
+      }
+  
+      uint32_t fsrWidth  = uint32_t(pPresentationParameters->BackBufferWidth  / scale);
+      uint32_t fsrHeight = uint32_t(pPresentationParameters->BackBufferHeight / scale);
+  
+      Logger::info(str::format(
+        "FSR internal resolution ",
+        fsrWidth, "x", fsrHeight,
+        " (display ", 
+        pPresentationParameters->BackBufferWidth,
+        "x",
+        pPresentationParameters->BackBufferHeight,
+        ")"
+      ));
+  
+      pPresentationParameters->BackBufferWidth  = fsrWidth;
+      pPresentationParameters->BackBufferHeight = fsrHeight;
+    }
+
     Logger::info(str::format(
       "D3D9DeviceEx::ResetSwapChain:\n",
       "  Requested Presentation Parameters\n",
