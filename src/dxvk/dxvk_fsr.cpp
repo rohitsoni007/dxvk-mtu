@@ -202,6 +202,85 @@ void DxvkFsr::dispatch(
 
   Logger::info("FSR: DxvkFsr::dispatch");
 
+  /* ---------------------------------------------------------
+     Image layout barriers
+     --------------------------------------------------------- */
+
+  VkImageMemoryBarrier2 barriers[2] = {};
+
+  barriers[0].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+  barriers[0].srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+  barriers[0].dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+  barriers[0].srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
+  barriers[0].dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
+  barriers[0].oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+  barriers[0].newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  barriers[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barriers[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barriers[0].image = input->image()->handle();
+  barriers[0].subresourceRange = input->imageSubresources();
+
+  barriers[1].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+  barriers[1].srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+  barriers[1].dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+  barriers[1].srcAccessMask = VK_ACCESS_2_MEMORY_READ_BIT;
+  barriers[1].dstAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
+  barriers[1].oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+  barriers[1].newLayout = VK_IMAGE_LAYOUT_GENERAL;
+  barriers[1].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barriers[1].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barriers[1].image = output->image()->handle();
+  barriers[1].subresourceRange = output->imageSubresources();
+
+  VkDependencyInfo depInfo = {};
+  depInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+  depInfo.imageMemoryBarrierCount = 2;
+  depInfo.pImageMemoryBarriers = barriers;
+
+  ctx.cmd->cmdPipelineBarrier(
+    DxvkCmdBuffer::ExecBuffer,
+    &depInfo);
+
+
+  /* ---------------------------------------------------------
+     Allocate descriptor set
+     --------------------------------------------------------- */
+
+  VkDescriptorSet dset = ctx.descriptorPool->alloc(m_layout);
+
+  VkDescriptorImageInfo srcInfo = {};
+  srcInfo.imageView = input->handle();
+  srcInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+  VkDescriptorImageInfo dstInfo = {};
+  dstInfo.imageView = output->handle();
+  dstInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+  std::array<VkWriteDescriptorSet, 2> writes = {};
+
+  writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+  writes[0].dstSet = dset;
+  writes[0].dstBinding = 0;
+  writes[0].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+  writes[0].descriptorCount = 1;
+  writes[0].pImageInfo = &srcInfo;
+
+  writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+  writes[1].dstSet = dset;
+  writes[1].dstBinding = 1;
+  writes[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+  writes[1].descriptorCount = 1;
+  writes[1].pImageInfo = &dstInfo;
+
+  ctx.cmd->updateDescriptorSets(
+    writes.size(),
+    writes.data());
+
+
+  /* ---------------------------------------------------------
+     EASU UPSCALE PASS
+     --------------------------------------------------------- */
+
   EasuPush push;
 
   FsrEasuCon(
@@ -217,6 +296,14 @@ void DxvkFsr::dispatch(
     DxvkCmdBuffer::ExecBuffer,
     VK_PIPELINE_BIND_POINT_COMPUTE,
     m_easuPipe);
+
+  ctx.cmd->cmdBindDescriptorSet(
+    DxvkCmdBuffer::ExecBuffer,
+    VK_PIPELINE_BIND_POINT_COMPUTE,
+    m_easuLayout,
+    dset,
+    0,
+    nullptr);
 
   ctx.cmd->cmdPushConstants(
     DxvkCmdBuffer::ExecBuffer,
@@ -234,7 +321,9 @@ void DxvkFsr::dispatch(
     gx, gy, 1);
 
 
-  // ---- RCAS SHARPENING ----
+  /* ---------------------------------------------------------
+     RCAS SHARPEN PASS
+     --------------------------------------------------------- */
 
   if (sharpness > 0.0f) {
 
@@ -248,6 +337,14 @@ void DxvkFsr::dispatch(
       DxvkCmdBuffer::ExecBuffer,
       VK_PIPELINE_BIND_POINT_COMPUTE,
       m_rcasPipe);
+
+    ctx.cmd->cmdBindDescriptorSet(
+      DxvkCmdBuffer::ExecBuffer,
+      VK_PIPELINE_BIND_POINT_COMPUTE,
+      m_rcasLayout,
+      dset,
+      0,
+      nullptr);
 
     ctx.cmd->cmdPushConstants(
       DxvkCmdBuffer::ExecBuffer,
