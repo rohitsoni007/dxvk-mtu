@@ -596,6 +596,14 @@ namespace dxvk {
     Logger::info(str::format(
       "FSR enabled = ",
       m_device->config().enableFsr1));
+
+    Logger::info(str::format(
+      "FSR DISPATCH ",
+      extent.width, "x", extent.height,
+      " -> ",
+      dstImage->info().extent.width, "x",
+      dstImage->info().extent.height
+    ));
     Logger::info(str::format(
       "FSR dispatch ",
       dstImage->info().extent.width, "x", dstImage->info().extent.height,
@@ -603,7 +611,7 @@ namespace dxvk {
       targetWidth, "x", targetHeight,
       " sharpness=", m_device->config().fsr1Sharpness));
 
-    if (m_device->config().enableFsr1 &&
+    if (m_fsr && m_device->config().enableFsr1 &&
         srcImage != dstImage &&
         dstImage->info().layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR &&
         srcSubresource.aspectMask == VK_IMAGE_ASPECT_COLOR_BIT &&
