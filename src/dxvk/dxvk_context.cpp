@@ -592,7 +592,7 @@ namespace dxvk {
 
     uint32_t targetWidth  = uint32_t(dstImage->info().extent.width  / scale);
     uint32_t targetHeight = uint32_t(dstImage->info().extent.height / scale);
-    Logger::info("FSR: enableFsr1" + m_device->config().enableFsr1);
+    Logger::info("FSR: enableFsr1");
     if (m_device->config().enableFsr1 &&
         srcImage != dstImage &&
         srcSubresource.aspectMask == VK_IMAGE_ASPECT_COLOR_BIT &&
@@ -600,8 +600,15 @@ namespace dxvk {
         dstImage->info().sampleCount == VK_SAMPLE_COUNT_1_BIT &&
         extent.width  <= targetWidth &&
         extent.height <= targetHeight) {
+      
+      Logger::info(str::format(
+      "FSR: srcImage.format = ",
+      srcImage->info().format));
 
-      Logger::info("FSR: srcImage.format" + srcImage->info().format);
+      Logger::info(str::format(
+      "FSR: srcFormat=", uint32_t(srcImage->info().format),
+      " dstFormat=", uint32_t(dstImage->info().format)));
+
       DxvkImageViewKey srcViewInfo = { };
       srcViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
       srcViewInfo.format   = srcImage->info().format;
