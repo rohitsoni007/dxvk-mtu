@@ -19,6 +19,7 @@
 #include "dxvk_format.h"
 #include "dxvk_image.h"
 #include "dxvk_latency.h"
+#include "dxvk_fsr.h"
 
 namespace dxvk {
 

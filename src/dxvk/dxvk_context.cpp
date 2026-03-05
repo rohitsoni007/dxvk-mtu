@@ -8,6 +8,8 @@
 
 namespace dxvk {
   
+  std::unique_ptr<DxvkFsr> m_fsr;
+
   DxvkContext::DxvkContext(const Rc<DxvkDevice>& device)
   : m_device      (device),
     m_common      (&device->m_objects),
@@ -18,6 +20,8 @@ namespace dxvk {
     m_execBarriers(DxvkCmdBuffer::ExecBuffer),
     m_queryManager(m_common->queryPool()),
     m_implicitResolves(device) {
+
+    m_fsr = std::make_unique<DxvkFsr>(device.ptr());
     // Init framebuffer info with default render pass in case
     // the app does not explicitly bind any render targets
     m_state.om.framebufferInfo = makeFramebufferInfo(m_state.om.renderTargets);
@@ -573,6 +577,64 @@ namespace dxvk {
 
     this->prepareImage(dstImage, vk::makeSubresourceRange(dstSubresource));
     this->prepareImage(srcImage, vk::makeSubresourceRange(srcSubresource));
+
+    Logger::info("FSR: UPSCALING");
+    // ----- FSR UPSCALING -----
+
+    float scale = 1.0f;
+
+    switch (m_device->config().fsr1Quality) {
+      case 0: scale = 2.0f; break;  // Performance
+      case 1: scale = 1.7f; break;  // Balanced
+      case 2: scale = 1.5f; break;  // Quality
+      case 3: scale = 1.3f; break;  // Ultra Quality
+    }
+
+    uint32_t targetWidth  = uint32_t(dstImage->info().extent.width  / scale);
+    uint32_t targetHeight = uint32_t(dstImage->info().extent.height / scale);
+    Logger::info("FSR: enableFsr1" + m_device->config().enableFsr1);
+    if (m_device->config().enableFsr1 &&
+        srcImage != dstImage &&
+        srcSubresource.aspectMask == VK_IMAGE_ASPECT_COLOR_BIT &&
+        srcImage->info().sampleCount == VK_SAMPLE_COUNT_1_BIT &&
+        dstImage->info().sampleCount == VK_SAMPLE_COUNT_1_BIT &&
+        extent.width  <= targetWidth &&
+        extent.height <= targetHeight) {
+
+      Logger::info("FSR: srcImage.format" + srcImage->info().format);
+      DxvkImageViewKey srcViewInfo = { };
+      srcViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+      srcViewInfo.format   = srcImage->info().format;
+      srcViewInfo.aspects  = srcSubresource.aspectMask;
+      srcViewInfo.mipIndex = srcSubresource.mipLevel;
+      srcViewInfo.mipCount = 1;
+      srcViewInfo.layerIndex = srcSubresource.baseArrayLayer;
+      srcViewInfo.layerCount = 1;
+
+      DxvkImageViewKey dstViewInfo = srcViewInfo;
+      dstViewInfo.format = dstImage->info().format;
+
+      Rc<DxvkImageView> srcView = srcImage->createView(srcViewInfo);
+      Rc<DxvkImageView> dstView = dstImage->createView(dstViewInfo);
+
+      DxvkContextObjects ctxObjects = { };
+      ctxObjects.cmd = m_cmd;
+      ctxObjects.descriptorPool = m_descriptorPool;
+      Logger::info("FSR: m_fsr.dispatch.before");
+      m_fsr->dispatch(
+        ctxObjects,
+        srcView,
+        dstView,
+        extent.width,
+        extent.height,
+        dstImage->info().extent.width,
+        dstImage->info().extent.height,
+        m_device->config().fsr1Sharpness
+      );
+      Logger::info("FSR: m_fsr.dispatch.after");
+
+      return;
+    }
 
     bool useFb = dstSubresource.aspectMask != srcSubresource.aspectMask;
 

@@ -1,67 +1,61 @@
 #pragma once
 
-#include "dxvk_context.h"
-#include "dxvk_device.h"
+#include "../util/rc/util_rc.h"
 #include "dxvk_image.h"
+#include "dxvk_shader.h"
 
 namespace dxvk {
 
+  class DxvkDevice;
+  class DxvkImageView;
+  struct DxvkContextObjects;
+
   class DxvkFsr {
+
   public:
 
     DxvkFsr(DxvkDevice* device);
     ~DxvkFsr();
 
-    /**
-     * \brief Dispatches the FSR compute shaders
-     *
-     * Upscales inputView to outputView using EASU, and optionally RCAS.
-     */
     void dispatch(
       const DxvkContextObjects& ctx,
-      const Rc<DxvkImageView>&  inputView,
-            VkRect2D            srcRect,
-      const Rc<DxvkImageView>&  outputView,
-            VkRect2D            dstRect,
-            float               sharpness);
+      const Rc<DxvkImageView>& input,
+      const Rc<DxvkImageView>& output,
+      uint32_t srcWidth,
+      uint32_t srcHeight,
+      uint32_t dstWidth,
+      uint32_t dstHeight,
+      float sharpness);
 
   private:
-    DxvkDevice*           m_device = nullptr;
-    VkSampler             m_sampler = VK_NULL_HANDLE;
 
-    VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
+    DxvkDevice* m_device;
 
-    VkPipelineLayout      m_easuPipelineLayout = VK_NULL_HANDLE;
-    VkShaderModule        m_easuShaderModule = VK_NULL_HANDLE;
-    VkPipeline            m_easuPipeline = VK_NULL_HANDLE;
+    VkSampler m_sampler;
 
-    VkPipelineLayout      m_rcasPipelineLayout = VK_NULL_HANDLE;
-    VkShaderModule        m_rcasShaderModule = VK_NULL_HANDLE;
-    VkPipeline            m_rcasPipeline = VK_NULL_HANDLE;
-    
-    Rc<DxvkImage>         m_rcasImage = nullptr;
-    Rc<DxvkImageView>     m_rcasView = nullptr;
+    VkDescriptorSetLayout m_layout;
 
-    VkShaderModule createShaderModule(const SpirvCodeBuffer& code) const;
-    VkDescriptorSetLayout createDescriptorSetLayout() const;
-    VkPipelineLayout createPipelineLayout() const;
-    VkPipeline createPipeline(VkPipelineLayout layout, VkShaderModule shader) const;
-    VkSampler createSampler() const;
+    VkPipelineLayout m_easuLayout;
+    VkPipelineLayout m_rcasLayout;
 
-    void dispatchEasu(
-      const DxvkContextObjects& ctx,
-      const Rc<DxvkImageView>&  inputView,
-            VkRect2D            srcRect,
-      const Rc<DxvkImageView>&  outputView,
-            VkRect2D            dstRect);
+    VkShaderModule m_easuShader;
+    VkShaderModule m_rcasShader;
 
-    void dispatchRcas(
-      const DxvkContextObjects& ctx,
-      const Rc<DxvkImageView>&  inputView,
-            VkRect2D            srcRect,
-      const Rc<DxvkImageView>&  outputView,
-            VkRect2D            dstRect,
-            float               sharpness);
+    VkPipeline m_easuPipe;
+    VkPipeline m_rcasPipe;
+
+    VkShaderModule createShader(const uint32_t* code, size_t size);
+
+    VkSampler createSampler();
+
+    VkDescriptorSetLayout createDescriptorLayout();
+
+    VkPipelineLayout createPipelineLayout();
+
+    VkPipeline createPipeline(
+      VkPipelineLayout layout,
+      VkShaderModule shader);
+
   };
 
 }

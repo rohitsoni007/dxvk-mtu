@@ -9,6 +9,7 @@
 #include "dxvk_objects.h"
 #include "dxvk_queue.h"
 #include "dxvk_util.h"
+#include "dxvk_fsr.h"
 
 namespace dxvk {
 
