@@ -621,20 +621,20 @@ namespace dxvk {
           IDirect3DTexture9** ppTexture,
           HANDLE*             pSharedHandle) {
 
-    if ((Usage & D3DUSAGE_RENDERTARGET) &&
-        m_dxvkDevice->config().enableFsr1 &&
-        m_fsrWidth  > 0 &&
-        m_fsrHeight > 0 &&
-        Width  >= m_displayWidth  &&
-        Height >= m_displayHeight) {
+    // if ((Usage & D3DUSAGE_RENDERTARGET) &&
+    //     m_dxvkDevice->config().enableFsr1 &&
+    //     m_fsrWidth  > 0 &&
+    //     m_fsrHeight > 0 &&
+    //     Width  >= m_displayWidth  &&
+    //     Height >= m_displayHeight) {
 
-      Width  = m_fsrWidth;
-      Height = m_fsrHeight;
+    //   Width  = m_fsrWidth;
+    //   Height = m_fsrHeight;
 
-      Logger::info(str::format(
-        "FSR D3D9DeviceEx::CreateTexture",
-        Width, "x", Height));
-    }
+    //   Logger::info(str::format(
+    //     "FSR D3D9DeviceEx::CreateTexture",
+    //     Width, "x", Height));
+    // }
 
     InitReturnPtr(ppTexture);
 
@@ -911,23 +911,23 @@ namespace dxvk {
           IDirect3DSurface9** ppSurface,
           HANDLE*             pSharedHandle) {
     
-    if (m_dxvkDevice->config().enableFsr1 &&
-        m_fsrWidth  > 0 &&
-        m_fsrHeight > 0) {
+    // if (m_dxvkDevice->config().enableFsr1 &&
+    //     m_fsrWidth  > 0 &&
+    //     m_fsrHeight > 0) {
 
-      Logger::info(str::format(
-        "FSR forcing render target ",
-        Width, "x", Height,
-        " -> ",
-        m_fsrWidth, "x", m_fsrHeight));
+    //   Logger::info(str::format(
+    //     "FSR forcing render target ",
+    //     Width, "x", Height,
+    //     " -> ",
+    //     m_fsrWidth, "x", m_fsrHeight));
 
-      Width  = m_fsrWidth;
-      Height = m_fsrHeight;
+    //   Width  = m_fsrWidth;
+    //   Height = m_fsrHeight;
 
-      Logger::info(str::format(
-        "FSR forcing render after ",
-        Width, "x", Height));
-    }
+    //   Logger::info(str::format(
+    //     "FSR forcing render after ",
+    //     Width, "x", Height));
+    // }
     return CreateRenderTargetEx(
       Width,
       Height,
@@ -8561,34 +8561,34 @@ namespace dxvk {
     D3D9Format backBufferFmt = EnumerateFormat(pPresentationParameters->BackBufferFormat);
     bool unlockedFormats = m_implicitSwapchain != nullptr && m_implicitSwapchain->HasFormatsUnlocked();
 
-    if (m_dxvkDevice->config().enableFsr1 &&
-    !pPresentationParameters->Windowed) {
+    // if (m_dxvkDevice->config().enableFsr1 &&
+    // !pPresentationParameters->Windowed) {
 
-      float scale = 1.0f;
+    //   float scale = 1.0f;
   
-      switch (m_dxvkDevice->config().fsr1Quality) {
-        case 0: scale = 2.0f; break; // Performance
-        case 1: scale = 1.7f; break;
-        case 2: scale = 1.5f; break;
-        case 3: scale = 1.3f; break;
-      }
+    //   switch (m_dxvkDevice->config().fsr1Quality) {
+    //     case 0: scale = 2.0f; break; // Performance
+    //     case 1: scale = 1.7f; break;
+    //     case 2: scale = 1.5f; break;
+    //     case 3: scale = 1.3f; break;
+    //   }
   
-      m_fsrWidth = uint32_t(pPresentationParameters->BackBufferWidth  / scale);
-      m_fsrHeight = uint32_t(pPresentationParameters->BackBufferHeight / scale);
-      m_displayWidth  = pPresentationParameters->BackBufferWidth;
-      m_displayHeight = pPresentationParameters->BackBufferHeight;
+    //   m_fsrWidth = uint32_t(pPresentationParameters->BackBufferWidth  / scale);
+    //   m_fsrHeight = uint32_t(pPresentationParameters->BackBufferHeight / scale);
+    //   m_displayWidth  = pPresentationParameters->BackBufferWidth;
+    //   m_displayHeight = pPresentationParameters->BackBufferHeight;
   
-      Logger::info(str::format(
-        "FSR internal resolution ",
-        m_fsrWidth, "x", m_fsrHeight,
-        " (display ", 
-        pPresentationParameters->BackBufferWidth,
-        "x",
-        pPresentationParameters->BackBufferHeight,
-        ")"
-      ));
+    //   Logger::info(str::format(
+    //     "FSR internal resolution ",
+    //     m_fsrWidth, "x", m_fsrHeight,
+    //     " (display ", 
+    //     pPresentationParameters->BackBufferWidth,
+    //     "x",
+    //     pPresentationParameters->BackBufferHeight,
+    //     ")"
+    //   ));
   
-    }
+    // }
 
     Logger::info(str::format(
       "D3D9DeviceEx::ResetSwapChain:\n",
