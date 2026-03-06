@@ -20,8 +20,8 @@ namespace dxvk {
     m_cursorSetLayout(createCursorSetLayout()),
     m_cursorPipelineLayout(createCursorPipelineLayout()) {
     
-    // if (m_device->config().enableFsr1)
-    //   m_fsr = std::make_unique<DxvkFsr>(m_device.ptr());
+    if (m_device->config().enableFsr1)
+      m_fsr = std::make_unique<DxvkFsr>(m_device.ptr());
 
     this->createSampler();
     this->createShaders();
@@ -133,7 +133,7 @@ namespace dxvk {
 
     Rc<DxvkImageView> actualSrcView = srcView;
     VkRect2D actualSrcRect = srcRect;
-    
+
     // if (m_fsr && dstRect.extent.width > srcRect.extent.width && dstRect.extent.height > srcRect.extent.height) {
     //   if (!m_fsrImage || m_fsrImage->info().extent.width != dstRect.extent.width || m_fsrImage->info().extent.height != dstRect.extent.height) {
     //     DxvkImageCreateInfo imageInfo = { };
@@ -197,6 +197,62 @@ namespace dxvk {
     }
 
     ctx.cmd->cmdEndRendering();
+    
+    Logger::info("FSR: cmdEndRendering after");
+    Logger::info("FSR: enableFsr1");
+    Logger::info(str::format(
+      "FSR enabled = ",
+      m_device->config().enableFsr1));
+
+    Logger::info(str::format(
+      "FSR DISPATCH ",
+      extent.width, "x", extent.height,
+      " -> ",
+      dstImage->info().extent.width, "x",
+      dstImage->info().extent.height
+    ));
+    
+    
+    Logger::info(str::format(
+    "FSR layout src=",
+    srcImage->info().layout,
+    " dst=",
+    dstImage->info().layout));
+    if (m_fsr && m_device->config().enableFsr1) {
+
+      Logger::info(str::format(
+      "FSR SRC IMAGE SIZE ",
+      srcImage->info().extent.width,
+      "x",
+      srcImage->info().extent.height));
+
+      Logger::info(str::format(
+      "FSR: srcFormat=", uint32_t(srcImage->info().format),
+      " dstFormat=", uint32_t(dstImage->info().format)));
+      Logger::info("FSR: UPSCALING");
+
+      Logger::info(str::format(
+      "FSR dst usage = ",
+      dstImage->info().usage));
+      Logger::info("FSR: m_fsr.dispatch.before");
+
+      ctx.cmd->cmdBeginDebugUtilsLabel(
+        DxvkCmdBuffer::ExecBuffer,
+        vk::makeLabel(0xff00ff, "FSR Upscale"));
+
+      m_fsr->dispatch(
+        ctx,
+        srcView,
+        dstView,
+        srcRect.extent.width,
+        srcRect.extent.height,
+        dstRect.extent.width,
+        dstRect.extent.height,
+        m_device->config().fsr1Sharpness
+      );
+
+      ctx.cmd->cmdEndDebugUtilsLabel(DxvkCmdBuffer::ExecBuffer);
+    }
 
     barrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
     barrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;

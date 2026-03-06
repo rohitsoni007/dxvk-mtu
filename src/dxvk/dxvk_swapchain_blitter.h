@@ -111,7 +111,7 @@ namespace dxvk {
    * rendered images to a swap chain image.
    */
   class DxvkSwapchainBlitter : public RcObject {
-    
+
   public:
 
     DxvkSwapchainBlitter(

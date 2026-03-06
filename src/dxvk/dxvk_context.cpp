@@ -578,144 +578,144 @@ namespace dxvk {
     this->prepareImage(dstImage, vk::makeSubresourceRange(dstSubresource));
     this->prepareImage(srcImage, vk::makeSubresourceRange(srcSubresource));
 
-    Logger::info("FSR: UPSCALING");
-    // ----- FSR UPSCALING -----
+    // Logger::info("FSR: UPSCALING");
+    // // ----- FSR UPSCALING -----
 
-    float scale = 1.0f;
+    // float scale = 1.0f;
 
-    switch (m_device->config().fsr1Quality) {
-      case 0: scale = 2.0f; break;  // Performance
-      case 1: scale = 1.7f; break;  // Balanced
-      case 2: scale = 1.5f; break;  // Quality
-      case 3: scale = 1.3f; break;  // Ultra Quality
-    }
+    // switch (m_device->config().fsr1Quality) {
+    //   case 0: scale = 2.0f; break;  // Performance
+    //   case 1: scale = 1.7f; break;  // Balanced
+    //   case 2: scale = 1.5f; break;  // Quality
+    //   case 3: scale = 1.3f; break;  // Ultra Quality
+    // }
 
-    uint32_t targetWidth  = uint32_t(dstImage->info().extent.width  / scale);
-    uint32_t targetHeight = uint32_t(dstImage->info().extent.height / scale);
-    Logger::info("FSR: enableFsr1");
-    Logger::info(str::format(
-      "FSR enabled = ",
-      m_device->config().enableFsr1));
+    // uint32_t targetWidth  = uint32_t(dstImage->info().extent.width  / scale);
+    // uint32_t targetHeight = uint32_t(dstImage->info().extent.height / scale);
+    // Logger::info("FSR: enableFsr1");
+    // Logger::info(str::format(
+    //   "FSR enabled = ",
+    //   m_device->config().enableFsr1));
 
-    Logger::info(str::format(
-      "FSR DISPATCH ",
-      extent.width, "x", extent.height,
-      " -> ",
-      dstImage->info().extent.width, "x",
-      dstImage->info().extent.height
-    ));
-    Logger::info(str::format(
-      "FSR dispatch ",
-      dstImage->info().extent.width, "x", dstImage->info().extent.height,
-      " -> ",
-      targetWidth, "x", targetHeight,
-      " sharpness=", m_device->config().fsr1Sharpness));
+    // Logger::info(str::format(
+    //   "FSR DISPATCH ",
+    //   extent.width, "x", extent.height,
+    //   " -> ",
+    //   dstImage->info().extent.width, "x",
+    //   dstImage->info().extent.height
+    // ));
+    // Logger::info(str::format(
+    //   "FSR dispatch ",
+    //   dstImage->info().extent.width, "x", dstImage->info().extent.height,
+    //   " -> ",
+    //   targetWidth, "x", targetHeight,
+    //   " sharpness=", m_device->config().fsr1Sharpness));
     
-    Logger::info(str::format(
-    "FSR layout src=",
-    srcImage->info().layout,
-    " dst=",
-    dstImage->info().layout));
+    // Logger::info(str::format(
+    // "FSR layout src=",
+    // srcImage->info().layout,
+    // " dst=",
+    // dstImage->info().layout));
 
-    if (m_fsr && m_device->config().enableFsr1 &&
-        srcImage != dstImage &&
-        srcSubresource.aspectMask == VK_IMAGE_ASPECT_COLOR_BIT &&
-        srcImage->info().sampleCount == VK_SAMPLE_COUNT_1_BIT &&
-        dstImage->info().sampleCount == VK_SAMPLE_COUNT_1_BIT
-        // dstImage->info().layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR &&
-        //  && extent.width  <= targetWidth &&
-        // extent.height <= targetHeight) {
-      ) {
+    // if (m_fsr && m_device->config().enableFsr1 &&
+    //     srcImage != dstImage &&
+    //     srcSubresource.aspectMask == VK_IMAGE_ASPECT_COLOR_BIT &&
+    //     srcImage->info().sampleCount == VK_SAMPLE_COUNT_1_BIT &&
+    //     dstImage->info().sampleCount == VK_SAMPLE_COUNT_1_BIT
+    //     // dstImage->info().layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR &&
+    //     //  && extent.width  <= targetWidth &&
+    //     // extent.height <= targetHeight) {
+    //   ) {
       
-      Logger::info(str::format(
-      "FSR SRC IMAGE SIZE ",
-      srcImage->info().extent.width,
-      "x",
-      srcImage->info().extent.height));
+    //   Logger::info(str::format(
+    //   "FSR SRC IMAGE SIZE ",
+    //   srcImage->info().extent.width,
+    //   "x",
+    //   srcImage->info().extent.height));
 
-      Logger::info(str::format(
-      "FSR: srcFormat=", uint32_t(srcImage->info().format),
-      " dstFormat=", uint32_t(dstImage->info().format)));
+    //   Logger::info(str::format(
+    //   "FSR: srcFormat=", uint32_t(srcImage->info().format),
+    //   " dstFormat=", uint32_t(dstImage->info().format)));
 
-      DxvkImageViewKey srcViewInfo = { };
-      srcViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-      srcViewInfo.format   = srcImage->info().format;
-      srcViewInfo.aspects  = srcSubresource.aspectMask;
-      srcViewInfo.mipIndex = srcSubresource.mipLevel;
-      srcViewInfo.mipCount = 1;
-      srcViewInfo.layerIndex = srcSubresource.baseArrayLayer;
-      srcViewInfo.layerCount = 1;
+    //   DxvkImageViewKey srcViewInfo = { };
+    //   srcViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    //   srcViewInfo.format   = srcImage->info().format;
+    //   srcViewInfo.aspects  = srcSubresource.aspectMask;
+    //   srcViewInfo.mipIndex = srcSubresource.mipLevel;
+    //   srcViewInfo.mipCount = 1;
+    //   srcViewInfo.layerIndex = srcSubresource.baseArrayLayer;
+    //   srcViewInfo.layerCount = 1;
 
-      DxvkImageViewKey dstViewInfo = srcViewInfo;
-      dstViewInfo.format = dstImage->info().format;
+    //   DxvkImageViewKey dstViewInfo = srcViewInfo;
+    //   dstViewInfo.format = dstImage->info().format;
 
-      Rc<DxvkImageView> srcView = srcImage->createView(srcViewInfo);
-      Rc<DxvkImageView> dstView = dstImage->createView(dstViewInfo);
+    //   Rc<DxvkImageView> srcView = srcImage->createView(srcViewInfo);
+    //   Rc<DxvkImageView> dstView = dstImage->createView(dstViewInfo);
 
-      DxvkContextObjects ctxObjects = { };
-      ctxObjects.cmd = m_cmd;
-      ctxObjects.descriptorPool = m_descriptorPool;
+    //   DxvkContextObjects ctxObjects = { };
+    //   ctxObjects.cmd = m_cmd;
+    //   ctxObjects.descriptorPool = m_descriptorPool;
 
-      Logger::info(str::format(
-      "FSR dst usage = ",
-      dstImage->info().usage));
-      Logger::info("FSR: m_fsr.dispatch.before");
+    //   Logger::info(str::format(
+    //   "FSR dst usage = ",
+    //   dstImage->info().usage));
+    //   Logger::info("FSR: m_fsr.dispatch.before");
       
-      VkImageMemoryBarrier2 barrier { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
+    //   VkImageMemoryBarrier2 barrier { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
 
-      barrier.srcStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
-      barrier.srcAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
+    //   barrier.srcStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+    //   barrier.srcAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
 
-      barrier.dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
-      barrier.dstAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
+    //   barrier.dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+    //   barrier.dstAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
 
-      barrier.oldLayout = dstImage->info().layout;
-      barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+    //   barrier.oldLayout = dstImage->info().layout;
+    //   barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
 
-      barrier.image = dstImage->handle();
+    //   barrier.image = dstImage->handle();
 
-      barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-      barrier.subresourceRange.baseMipLevel = 0;
-      barrier.subresourceRange.levelCount = 1;
-      barrier.subresourceRange.baseArrayLayer = 0;
-      barrier.subresourceRange.layerCount = 1;
+    //   barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    //   barrier.subresourceRange.baseMipLevel = 0;
+    //   barrier.subresourceRange.levelCount = 1;
+    //   barrier.subresourceRange.baseArrayLayer = 0;
+    //   barrier.subresourceRange.layerCount = 1;
 
-      VkDependencyInfo depInfo { VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
-      depInfo.imageMemoryBarrierCount = 1;
-      depInfo.pImageMemoryBarriers = &barrier;
+    //   VkDependencyInfo depInfo { VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+    //   depInfo.imageMemoryBarrierCount = 1;
+    //   depInfo.pImageMemoryBarriers = &barrier;
 
-      m_cmd->cmdPipelineBarrier(
-      DxvkCmdBuffer::ExecBuffer,
-      &depInfo);
+    //   m_cmd->cmdPipelineBarrier(
+    //   DxvkCmdBuffer::ExecBuffer,
+    //   &depInfo);
      
-      m_fsr->dispatch(
-        ctxObjects,
-        srcView,
-        dstView,
-        targetWidth,
-        targetHeight,
-        dstImage->info().extent.width,
-        dstImage->info().extent.height,
-        m_device->config().fsr1Sharpness
-      );
+    //   m_fsr->dispatch(
+    //     ctxObjects,
+    //     srcView,
+    //     dstView,
+    //     targetWidth,
+    //     targetHeight,
+    //     dstImage->info().extent.width,
+    //     dstImage->info().extent.height,
+    //     m_device->config().fsr1Sharpness
+    //   );
 
-      barrier.srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
-      barrier.srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
+    //   barrier.srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+    //   barrier.srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
 
-      barrier.dstStageMask = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT;
-      barrier.dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT;
+    //   barrier.dstStageMask = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT;
+    //   barrier.dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT;
 
-      barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-      barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    //   barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+    //   barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-      m_cmd->cmdPipelineBarrier(
-          DxvkCmdBuffer::ExecBuffer,
-          &depInfo);
+    //   m_cmd->cmdPipelineBarrier(
+    //       DxvkCmdBuffer::ExecBuffer,
+    //       &depInfo);
      
-      Logger::info("FSR: m_fsr.dispatch.after");
+    //   Logger::info("FSR: m_fsr.dispatch.after");
 
-      return;
-    }
+    //   return;
+    // }
 
     bool useFb = dstSubresource.aspectMask != srcSubresource.aspectMask;
 
