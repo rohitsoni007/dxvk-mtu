@@ -613,10 +613,10 @@ namespace dxvk {
 
     if (m_fsr && m_device->config().enableFsr1 &&
         srcImage != dstImage &&
-        dstImage->info().layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR &&
         srcSubresource.aspectMask == VK_IMAGE_ASPECT_COLOR_BIT &&
         srcImage->info().sampleCount == VK_SAMPLE_COUNT_1_BIT &&
         dstImage->info().sampleCount == VK_SAMPLE_COUNT_1_BIT
+        // dstImage->info().layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR &&
         //  && extent.width  <= targetWidth &&
         // extent.height <= targetHeight) {
       ) {
