@@ -772,7 +772,8 @@ namespace dxvk {
 
       DxvkImageCreateInfo imageInfo = { };
       imageInfo.type        = VK_IMAGE_TYPE_2D;
-      imageInfo.format      = swapInfo.imageFormat;
+      // imageInfo.format      = swapInfo.imageFormat;
+      imageInfo.format      = VK_FORMAT_B8G8R8A8_UNORM;
       imageInfo.sampleCount = VK_SAMPLE_COUNT_1_BIT;
       imageInfo.extent      = { swapInfo.imageExtent.width, swapInfo.imageExtent.height, 1u };
       imageInfo.numLayers   = swapInfo.imageArrayLayers;
