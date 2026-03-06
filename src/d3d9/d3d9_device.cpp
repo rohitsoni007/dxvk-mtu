@@ -624,7 +624,9 @@ namespace dxvk {
     if ((Usage & D3DUSAGE_RENDERTARGET) &&
         m_dxvkDevice->config().enableFsr1 &&
         m_fsrWidth  > 0 &&
-        m_fsrHeight > 0) {
+        m_fsrHeight > 0 &&
+        Width  >= m_displayWidth  &&
+        Height >= m_displayHeight) {
 
       Width  = m_fsrWidth;
       Height = m_fsrHeight;
@@ -8573,6 +8575,8 @@ namespace dxvk {
   
       m_fsrWidth = uint32_t(pPresentationParameters->BackBufferWidth  / scale);
       m_fsrHeight = uint32_t(pPresentationParameters->BackBufferHeight / scale);
+      m_displayWidth  = pPresentationParameters->BackBufferWidth;
+      m_displayHeight = pPresentationParameters->BackBufferHeight;
   
       Logger::info(str::format(
         "FSR internal resolution ",

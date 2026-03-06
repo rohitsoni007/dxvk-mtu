@@ -1180,6 +1180,8 @@ namespace dxvk {
 
     uint32_t m_fsrWidth  = 0;
     uint32_t m_fsrHeight = 0;
+    uint32_t m_displayWidth  = 0;
+    uint32_t m_displayHeight = 0;
 
     template<bool AllowFlush = true, typename Cmd>
     void EmitCs(Cmd&& command) {
