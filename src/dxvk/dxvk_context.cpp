@@ -655,7 +655,39 @@ namespace dxvk {
       DxvkContextObjects ctxObjects = { };
       ctxObjects.cmd = m_cmd;
       ctxObjects.descriptorPool = m_descriptorPool;
+
+      Logger::info(str::format(
+      "FSR dst usage = ",
+      dstImage->info().usage));
       Logger::info("FSR: m_fsr.dispatch.before");
+      
+      VkImageMemoryBarrier2 barrier { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
+
+      barrier.srcStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+      barrier.srcAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
+
+      barrier.dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+      barrier.dstAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
+
+      barrier.oldLayout = dstImage->info().layout;
+      barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+      barrier.image = dstImage->handle();
+
+      barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+      barrier.subresourceRange.baseMipLevel = 0;
+      barrier.subresourceRange.levelCount = 1;
+      barrier.subresourceRange.baseArrayLayer = 0;
+      barrier.subresourceRange.layerCount = 1;
+
+      VkDependencyInfo depInfo { VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+      depInfo.imageMemoryBarrierCount = 1;
+      depInfo.pImageMemoryBarriers = &barrier;
+
+      m_cmd->cmdPipelineBarrier(
+      DxvkCmdBuffer::ExecBuffer,
+      &depInfo);
+     
       m_fsr->dispatch(
         ctxObjects,
         srcView,
@@ -666,6 +698,20 @@ namespace dxvk {
         dstImage->info().extent.height,
         m_device->config().fsr1Sharpness
       );
+
+      barrier.srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+      barrier.srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
+
+      barrier.dstStageMask = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT;
+      barrier.dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT;
+
+      barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+      barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+      m_cmd->cmdPipelineBarrier(
+          DxvkCmdBuffer::ExecBuffer,
+          &depInfo);
+     
       Logger::info("FSR: m_fsr.dispatch.after");
 
       return;
