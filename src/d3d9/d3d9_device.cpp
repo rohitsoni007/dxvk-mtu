@@ -620,6 +620,20 @@ namespace dxvk {
           D3DPOOL             Pool,
           IDirect3DTexture9** ppTexture,
           HANDLE*             pSharedHandle) {
+
+    if ((Usage & D3DUSAGE_RENDERTARGET) &&
+        m_dxvkDevice->config().enableFsr1 &&
+        m_fsrWidth  > 0 &&
+        m_fsrHeight > 0) {
+
+      Width  = m_fsrWidth;
+      Height = m_fsrHeight;
+
+      Logger::info(str::format(
+        "FSR D3D9DeviceEx::CreateTexture",
+        Width, "x", Height));
+    }
+
     InitReturnPtr(ppTexture);
 
     if (unlikely(ppTexture == nullptr))
@@ -894,6 +908,24 @@ namespace dxvk {
           BOOL                Lockable,
           IDirect3DSurface9** ppSurface,
           HANDLE*             pSharedHandle) {
+    
+    if (m_dxvkDevice->config().enableFsr1 &&
+        m_fsrWidth  > 0 &&
+        m_fsrHeight > 0) {
+
+      Logger::info(str::format(
+        "FSR forcing render target ",
+        Width, "x", Height,
+        " -> ",
+        m_fsrWidth, "x", m_fsrHeight));
+
+      Width  = m_fsrWidth;
+      Height = m_fsrHeight;
+
+      Logger::info(str::format(
+        "FSR forcing render after ",
+        Width, "x", Height));
+    }
     return CreateRenderTargetEx(
       Width,
       Height,
@@ -8539,12 +8571,12 @@ namespace dxvk {
         case 3: scale = 1.3f; break;
       }
   
-      uint32_t fsrWidth  = uint32_t(pPresentationParameters->BackBufferWidth  / scale);
-      uint32_t fsrHeight = uint32_t(pPresentationParameters->BackBufferHeight / scale);
+      m_fsrWidth = uint32_t(pPresentationParameters->BackBufferWidth  / scale);
+      m_fsrHeight = uint32_t(pPresentationParameters->BackBufferHeight / scale);
   
       Logger::info(str::format(
         "FSR internal resolution ",
-        fsrWidth, "x", fsrHeight,
+        m_fsrWidth, "x", m_fsrHeight,
         " (display ", 
         pPresentationParameters->BackBufferWidth,
         "x",
@@ -8552,8 +8584,6 @@ namespace dxvk {
         ")"
       ));
   
-      pPresentationParameters->BackBufferWidth  = fsrWidth;
-      pPresentationParameters->BackBufferHeight = fsrHeight;
     }
 
     Logger::info(str::format(

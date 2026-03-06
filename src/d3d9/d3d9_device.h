@@ -54,6 +54,10 @@ namespace dxvk {
   class D3D9FormatHelper;
   class D3D9UserDefinedAnnotation;
 
+  uint32_t m_fsrWidth  = 0;
+  uint32_t m_fsrHeight = 0;
+
+
   enum class D3D9DeviceFlag : uint32_t {
     DirtyFramebuffer,
     DirtyClipPlanes,

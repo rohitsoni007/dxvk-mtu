@@ -616,10 +616,10 @@ namespace dxvk {
         dstImage->info().layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR &&
         srcSubresource.aspectMask == VK_IMAGE_ASPECT_COLOR_BIT &&
         srcImage->info().sampleCount == VK_SAMPLE_COUNT_1_BIT &&
-        dstImage->info().sampleCount == VK_SAMPLE_COUNT_1_BIT &&
-        extent.width  <= targetWidth &&
-        extent.height <= targetHeight) {
-      
+        dstImage->info().sampleCount == VK_SAMPLE_COUNT_1_BIT
+        //  && extent.width  <= targetWidth &&
+        // extent.height <= targetHeight) {
+      ) {
       Logger::info(str::format(
       "FSR: srcImage.format = ",
       srcImage->info().format));
