@@ -99,8 +99,8 @@ namespace dxvk {
     barrier.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
     barrier.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
     barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    // barrier.newLayout = dstView->image()->pickLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-    barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+    barrier.newLayout = dstView->image()->pickLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    // barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.image = dstView->image()->handle();
@@ -116,8 +116,8 @@ namespace dxvk {
 
     VkRenderingAttachmentInfo attachmentInfo = { VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO };
     attachmentInfo.imageView = dstView->handle();
-    // attachmentInfo.imageLayout = dstView->image()->pickLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-    attachmentInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    attachmentInfo.imageLayout = dstView->image()->pickLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    // attachmentInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
     attachmentInfo.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     attachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
@@ -257,8 +257,8 @@ namespace dxvk {
     barrier.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
     barrier.dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT;
     barrier.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-    // barrier.oldLayout = dstView->image()->pickLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-    barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+    barrier.oldLayout = dstView->image()->pickLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    // barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
     Logger::info(str::format(
     "FSR generated dstView=",
     dstView->image()->info().layout));
