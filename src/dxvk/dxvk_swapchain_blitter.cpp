@@ -197,7 +197,7 @@ namespace dxvk {
     }
 
     ctx.cmd->cmdEndRendering();
-    
+
     Logger::info("FSR: cmdEndRendering after");
     Logger::info("FSR: enableFsr1");
     Logger::info(str::format(
@@ -206,34 +206,28 @@ namespace dxvk {
 
     Logger::info(str::format(
       "FSR DISPATCH ",
-      extent.width, "x", extent.height,
+      srcRect.extent.width, "x", srcRect.extent.height,
       " -> ",
-      dstImage->info().extent.width, "x",
-      dstImage->info().extent.height
+      dstRect.extent.width, "x",
+      dstRect.extent.height
     ));
     
     
     Logger::info(str::format(
     "FSR layout src=",
-    srcImage->info().layout,
+    srcView->image()->info().layout,
     " dst=",
-    dstImage->info().layout));
+    dstView->image()->info().layout));
     if (m_fsr && m_device->config().enableFsr1) {
 
       Logger::info(str::format(
-      "FSR SRC IMAGE SIZE ",
-      srcImage->info().extent.width,
-      "x",
-      srcImage->info().extent.height));
-
-      Logger::info(str::format(
-      "FSR: srcFormat=", uint32_t(srcImage->info().format),
-      " dstFormat=", uint32_t(dstImage->info().format)));
+      "FSR: srcFormat=", uint32_t(srcView->image()->info().format),
+      " dstFormat=", uint32_t(dstView->image()->info().format)));
       Logger::info("FSR: UPSCALING");
 
       Logger::info(str::format(
       "FSR dst usage = ",
-      dstImage->info().usage));
+      dstView->image()->info().usage));
       Logger::info("FSR: m_fsr.dispatch.before");
 
       ctx.cmd->cmdBeginDebugUtilsLabel(
