@@ -610,6 +610,12 @@ namespace dxvk {
       " -> ",
       targetWidth, "x", targetHeight,
       " sharpness=", m_device->config().fsr1Sharpness));
+    
+    Logger::info(str::format(
+    "FSR layout src=",
+    srcImage->info().layout,
+    " dst=",
+    dstImage->info().layout));
 
     if (m_fsr && m_device->config().enableFsr1 &&
         srcImage != dstImage &&
@@ -620,9 +626,12 @@ namespace dxvk {
         //  && extent.width  <= targetWidth &&
         // extent.height <= targetHeight) {
       ) {
+      
       Logger::info(str::format(
-      "FSR: srcImage.format = ",
-      srcImage->info().format));
+      "FSR SRC IMAGE SIZE ",
+      srcImage->info().extent.width,
+      "x",
+      srcImage->info().extent.height));
 
       Logger::info(str::format(
       "FSR: srcFormat=", uint32_t(srcImage->info().format),
@@ -651,8 +660,8 @@ namespace dxvk {
         ctxObjects,
         srcView,
         dstView,
-        extent.width,
-        extent.height,
+        targetWidth,
+        targetHeight,
         dstImage->info().extent.width,
         dstImage->info().extent.height,
         m_device->config().fsr1Sharpness
