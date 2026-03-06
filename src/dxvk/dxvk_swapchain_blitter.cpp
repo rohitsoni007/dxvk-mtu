@@ -99,7 +99,8 @@ namespace dxvk {
     barrier.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
     barrier.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
     barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    barrier.newLayout = dstView->image()->pickLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    // barrier.newLayout = dstView->image()->pickLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.image = dstView->image()->handle();
@@ -218,17 +219,19 @@ namespace dxvk {
     srcView->image()->info().layout,
     " dst=",
     dstView->image()->info().layout));
+    Logger::info(str::format(
+    "FSR: srcFormat=", uint32_t(srcView->image()->info().format),
+    " dstFormat=", uint32_t(dstView->image()->info().format)));
+
+    Logger::info(str::format(
+    "FSR dst usage = ",
+    dstView->image()->info().usage));
+    Logger::info("FSR: m_fsr.dispatch.before");
+    
     if (m_fsr && m_device->config().enableFsr1) {
 
-      Logger::info(str::format(
-      "FSR: srcFormat=", uint32_t(srcView->image()->info().format),
-      " dstFormat=", uint32_t(dstView->image()->info().format)));
       Logger::info("FSR: UPSCALING");
 
-      Logger::info(str::format(
-      "FSR dst usage = ",
-      dstView->image()->info().usage));
-      Logger::info("FSR: m_fsr.dispatch.before");
 
       ctx.cmd->cmdBeginDebugUtilsLabel(
         DxvkCmdBuffer::ExecBuffer,
@@ -253,7 +256,12 @@ namespace dxvk {
     barrier.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
     barrier.dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT;
     barrier.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-    barrier.oldLayout = dstView->image()->pickLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    // barrier.oldLayout = dstView->image()->pickLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+    Logger::info(str::format(
+    "FSR generated dstView=",
+    dstView->image()->info().layout));
+
     barrier.newLayout = dstView->image()->info().layout;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
