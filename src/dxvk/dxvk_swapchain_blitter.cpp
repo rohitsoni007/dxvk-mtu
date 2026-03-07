@@ -9,6 +9,9 @@
 #include <dxvk_present_frag_ms_blit.h>
 #include <dxvk_present_vert.h>
 
+#include "../util/log/log.h"
+#include "../util/util_string.h"
+
 namespace dxvk {
   
   DxvkSwapchainBlitter::DxvkSwapchainBlitter(
@@ -133,9 +136,27 @@ namespace dxvk {
 
     Rc<DxvkImageView> actualSrcView = srcView;
     VkRect2D actualSrcRect = srcRect;
-    
-    if (m_fsr && dstRect.extent.width > srcRect.extent.width && dstRect.extent.height > srcRect.extent.height) {
-      if (!m_fsrImage || m_fsrImage->info().extent.width != dstRect.extent.width || m_fsrImage->info().extent.height != dstRect.extent.height) {
+
+    Logger::info(str::format("DxvkSwapchainBlitter: Checking FSR: ",
+      "src=", srcRect.extent.width, "x", srcRect.extent.height, ", ",
+      "dst=", dstRect.extent.width, "x", dstRect.extent.height, ", ",
+      "m_fsr=", (m_fsr ? "yes" : "no")));
+
+    // if (m_fsr && dstRect.extent.width > srcRect.extent.width && dstRect.extent.height > srcRect.extent.height) {
+    if (m_fsr) {
+      Logger::info(str::format("DxvkSwapchainBlitter: FSR condition met. ",
+        "m_fsrImage=", (m_fsrImage ? "exists" : "null")));
+
+        if (m_fsrImage) {
+          Logger::info(str::format("DxvkSwapchainBlitter: Resizing FSR image: ",
+            m_fsrImage->info().extent.width, "x", m_fsrImage->info().extent.height, " -> ",
+            dstRect.extent.width, "x", dstRect.extent.height));
+        } else {
+          Logger::info(str::format("DxvkSwapchainBlitter: Creating FSR image: ",
+            dstRect.extent.width, "x", dstRect.extent.height));
+        }
+      // if (!m_fsrImage || m_fsrImage->info().extent.width != dstRect.extent.width || m_fsrImage->info().extent.height != dstRect.extent.height) {
+      if (!m_fsrImage) {
         DxvkImageCreateInfo imageInfo = { };
         imageInfo.type          = VK_IMAGE_TYPE_2D;
         imageInfo.format        = VK_FORMAT_R16G16B16A16_SFLOAT;
@@ -157,7 +178,10 @@ namespace dxvk {
         imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         imageInfo.debugName     = "Swapchain FSR Image";
 
+        Logger::info(str::format("DxvkSwapchainBlitter: Creating FSR image: ",
+          imageInfo.extent.width, "x", imageInfo.extent.height));
         m_fsrImage = m_device->createImage(imageInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        Logger::info("DxvkSwapchainBlitter: FSR intermediate image created.");
 
         DxvkImageViewKey viewInfo = { };
         viewInfo.viewType       = VK_IMAGE_VIEW_TYPE_2D;
@@ -169,15 +193,28 @@ namespace dxvk {
         viewInfo.layerIndex     = 0u;
         viewInfo.layerCount     = 1u;
 
+        Logger::info("DxvkSwapchainBlitter: Creating FSR intermediate view...");
         m_fsrView = m_fsrImage->createView(viewInfo);
+        Logger::info("DxvkSwapchainBlitter: FSR intermediate view created.");
       }
 
       ctx.cmd->cmdEndRendering();
 
+      Logger::info(str::format("DxvkSwapchainBlitter: Starting FSR dispatch: ",
+        srcRect.extent.width, "x", srcRect.extent.height, " -> ",
+        dstRect.extent.width, "x", dstRect.extent.height));
+      
       m_fsr->dispatch(ctx, srcView, srcRect, m_fsrView, dstRect, m_device->config().fsr1Sharpness);
+      Logger::info("DxvkSwapchainBlitter: FSR dispatch finished.");
+      
       actualSrcView = m_fsrView;
       actualSrcRect.offset = { 0, 0 };
       actualSrcRect.extent = dstRect.extent;
+
+      Logger::info(str::format("DxvkSwapchainBlitter: FSR Dispatch Details: ",
+        "srcRect=", srcRect.extent.width, "x", srcRect.extent.height, ", ",
+        "dstRect=", dstRect.extent.width, "x", dstRect.extent.height, ", ",
+        "actualSrcRect=", actualSrcRect.extent.width, "x", actualSrcRect.extent.height));
       
       // We must track the new image
       ctx.cmd->track(m_fsrImage, DxvkAccess::Write);

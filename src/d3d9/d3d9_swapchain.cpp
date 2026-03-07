@@ -39,7 +39,7 @@ namespace dxvk {
     , m_swapchainExt     (this) {
     this->NormalizePresentParameters(pPresentParams);
     m_presentParams = *pPresentParams;
-    ApplyFsrScale(m_device, m_presentParams);
+    // ApplyFsrScale(m_device, m_presentParams);
     m_window = m_presentParams.hDeviceWindow;
 
     UpdateWindowCtx();
@@ -648,7 +648,7 @@ namespace dxvk {
     }
 
     m_presentParams = *pPresentParams;
-    ApplyFsrScale(m_device, m_presentParams);
+    // ApplyFsrScale(m_device, m_presentParams);
 
     if (changeFullscreen)
       SetGammaRamp(0, &m_ramp);
