@@ -163,7 +163,7 @@ namespace dxvk {
     VkDescriptorImageInfo dstInfo = { VK_NULL_HANDLE, outputView->handle(), VK_IMAGE_LAYOUT_GENERAL };
 
     std::array<VkWriteDescriptorSet, 2> writes = {{
-      { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dset, 0, 0, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &srcInfo, nullptr, nullptr },
+      { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dset, 0, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &srcInfo, nullptr, nullptr },
       { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dset, 1, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, &dstInfo, nullptr, nullptr }
     }};
     
@@ -202,7 +202,7 @@ namespace dxvk {
     VkDescriptorImageInfo dstInfo = { VK_NULL_HANDLE, outputView->handle(), VK_IMAGE_LAYOUT_GENERAL };
 
     std::array<VkWriteDescriptorSet, 2> writes = {{
-      { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dset, 0, 0, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &srcInfo, nullptr, nullptr },
+      { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dset, 0, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &srcInfo, nullptr, nullptr },
       { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dset, 1, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, &dstInfo, nullptr, nullptr }
     }};
     

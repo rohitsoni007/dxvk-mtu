@@ -44,7 +44,7 @@ namespace dxvk {
 
     VkShaderModule createShaderModule(const SpirvCodeBuffer& code) const;
     VkDescriptorSetLayout createDescriptorSetLayout() const;
-    VkPipelineLayout createPipelineLayout() const;
+    VkPipelineLayout createPipelineLayout(size_t pushSize) const;
     VkPipeline createPipeline(VkPipelineLayout layout, VkShaderModule shader) const;
     VkSampler createSampler() const;
 
