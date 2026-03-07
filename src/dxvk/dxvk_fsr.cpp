@@ -28,11 +28,11 @@ namespace dxvk {
     m_sampler = createSampler();
     m_descriptorSetLayout = createDescriptorSetLayout();
 
-    m_easuPipelineLayout = createPipelineLayout();
+    m_easuPipelineLayout = createPipelineLayout(sizeof(EasuPushConstants));
     m_easuShaderModule = createShaderModule(dxvk_fsr1_easu);
     m_easuPipeline = createPipeline(m_easuPipelineLayout, m_easuShaderModule);
 
-    m_rcasPipelineLayout = createPipelineLayout();
+    m_rcasPipelineLayout = createPipelineLayout(sizeof(RcasPushConstants));
     m_rcasShaderModule = createShaderModule(dxvk_fsr1_rcas);
     m_rcasPipeline = createPipeline(m_rcasPipelineLayout, m_rcasShaderModule);
   }
@@ -84,8 +84,12 @@ namespace dxvk {
   VkDescriptorSetLayout DxvkFsr::createDescriptorSetLayout() const {
     auto vkd = m_device->vkd();
 
+    // std::array<VkDescriptorSetLayoutBinding, 2> bindings = {{
+    //   { 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr },
+    //   { 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr }
+    // }};
     std::array<VkDescriptorSetLayoutBinding, 2> bindings = {{
-      { 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr },
+      { 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr },
       { 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr }
     }};
 
@@ -99,10 +103,10 @@ namespace dxvk {
     return result;
   }
 
-  VkPipelineLayout DxvkFsr::createPipelineLayout() const {
+  VkPipelineLayout DxvkFsr::createPipelineLayout(size_t pushSize) const {
     auto vkd = m_device->vkd();
 
-    VkPushConstantRange push = { VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(EasuPushConstants) }; // Max size for both
+    VkPushConstantRange push = { VK_SHADER_STAGE_COMPUTE_BIT, 0, pushSize }; // Max size for both
 
     VkPipelineLayoutCreateInfo info = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
     info.setLayoutCount = 1;
@@ -154,7 +158,8 @@ namespace dxvk {
 
     VkDescriptorSet dset = ctx.descriptorPool->alloc(m_descriptorSetLayout);
 
-    VkDescriptorImageInfo srcInfo = { VK_NULL_HANDLE, inputView->handle(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+    // VkDescriptorImageInfo srcInfo = { VK_NULL_HANDLE, inputView->handle(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+    VkDescriptorImageInfo srcInfo = { m_sampler, inputView->handle(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
     VkDescriptorImageInfo dstInfo = { VK_NULL_HANDLE, outputView->handle(), VK_IMAGE_LAYOUT_GENERAL };
 
     std::array<VkWriteDescriptorSet, 2> writes = {{
@@ -192,7 +197,8 @@ namespace dxvk {
 
     VkDescriptorSet dset = ctx.descriptorPool->alloc(m_descriptorSetLayout);
 
-    VkDescriptorImageInfo srcInfo = { VK_NULL_HANDLE, inputView->handle(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+    // VkDescriptorImageInfo srcInfo = { VK_NULL_HANDLE, inputView->handle(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+    VkDescriptorImageInfo srcInfo = { m_sampler, inputView->handle(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
     VkDescriptorImageInfo dstInfo = { VK_NULL_HANDLE, outputView->handle(), VK_IMAGE_LAYOUT_GENERAL };
 
     std::array<VkWriteDescriptorSet, 2> writes = {{
@@ -231,8 +237,10 @@ namespace dxvk {
     barrierRead.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
     barrierRead.dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
     barrierRead.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
-    barrierRead.oldLayout = inputView->image()->pickLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-    barrierRead.newLayout = inputView->image()->pickLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    // barrierRead.oldLayout = inputView->image()->pickLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    // barrierRead.newLayout = inputView->image()->pickLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    barrierRead.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+    barrierRead.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     barrierRead.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrierRead.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrierRead.image = inputView->image()->handle();
