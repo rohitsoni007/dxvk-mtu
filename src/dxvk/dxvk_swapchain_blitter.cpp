@@ -163,7 +163,8 @@ namespace dxvk {
         DxvkImageCreateInfo imageInfo = { };
         imageInfo.type          = VK_IMAGE_TYPE_2D;
         // imageInfo.format        = VK_FORMAT_R16G16B16A16_SFLOAT;
-        imageInfo.format        = srcView->image()->info().format;
+        // imageInfo.format        = srcView->image()->info().format;
+        imageInfo.format        = VK_FORMAT_B8G8R8A8_UNORM;
         imageInfo.sampleCount   = VK_SAMPLE_COUNT_1_BIT;
         imageInfo.extent        = { dstRect.extent.width, dstRect.extent.height, 1u };
         imageInfo.mipLevels     = 1;
