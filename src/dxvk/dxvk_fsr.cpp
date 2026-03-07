@@ -209,14 +209,26 @@ void DxvkFsr::dispatch(
   VkImageMemoryBarrier2 barriers[2] = {};
 
   barriers[0].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+  // barriers[0].srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+  // barriers[0].dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+  // barriers[0].srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
+  // barriers[0].dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
+  // // barriers[0].oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+  // barriers[0].oldLayout = input->image()->info().layout;
+  // barriers[0].oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+  // barriers[0].newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
   barriers[0].srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
   barriers[0].dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+
   barriers[0].srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
-  barriers[0].dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
-  barriers[0].oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+  barriers[0].dstAccessMask = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT;
+
+  barriers[0].oldLayout = input->image()->info().layout;
   barriers[0].newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-  barriers[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barriers[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+  // barriers[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  // barriers[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
   barriers[0].image = input->image()->handle();
   barriers[0].subresourceRange = input->imageSubresources();
 
@@ -225,10 +237,11 @@ void DxvkFsr::dispatch(
   barriers[1].dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
   barriers[1].srcAccessMask = VK_ACCESS_2_MEMORY_READ_BIT;
   barriers[1].dstAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
-  barriers[1].oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+  barriers[1].oldLayout = output->image()->info().layout;
+  // barriers[1].oldLayout = VK_IMAGE_LAYOUT_GENERAL;
   barriers[1].newLayout = VK_IMAGE_LAYOUT_GENERAL;
-  barriers[1].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barriers[1].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  // barriers[1].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  // barriers[1].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
   barriers[1].image = output->image()->handle();
   barriers[1].subresourceRange = output->imageSubresources();
 
@@ -327,6 +340,28 @@ void DxvkFsr::dispatch(
 
   if (sharpness > 0.0f) {
 
+    VkImageMemoryBarrier2 rcasBarrier { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
+
+    rcasBarrier.srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+    rcasBarrier.srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
+
+    rcasBarrier.dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+    rcasBarrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
+
+    rcasBarrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+    rcasBarrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+    rcasBarrier.image = output->image()->handle();
+    rcasBarrier.subresourceRange = output->imageSubresources();
+
+    VkDependencyInfo rcasDep { VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+    rcasDep.imageMemoryBarrierCount = 1;
+    rcasDep.pImageMemoryBarriers = &rcasBarrier;
+
+    ctx.cmd->cmdPipelineBarrier(
+      DxvkCmdBuffer::ExecBuffer,
+      &rcasDep);
+
     RcasPush rpush;
 
     float stops = 4.0f * (1.0f - std::min(1.0f, sharpness));
@@ -358,6 +393,9 @@ void DxvkFsr::dispatch(
       DxvkCmdBuffer::ExecBuffer,
       gx, gy, 1);
   }
+
+  ctx.cmd->track(input->image(), DxvkAccess::Read);
+  ctx.cmd->track(output->image(), DxvkAccess::Write);
 }
 
 }
