@@ -155,11 +155,15 @@ namespace dxvk {
           Logger::info(str::format("DxvkSwapchainBlitter: Creating FSR image: ",
             dstRect.extent.width, "x", dstRect.extent.height));
         }
+
+        Logger::info(str::format("DxvkSwapchainBlitter: srcView->image()->info().format: ",
+          srcView->image()->info().format));
       // if (!m_fsrImage || m_fsrImage->info().extent.width != dstRect.extent.width || m_fsrImage->info().extent.height != dstRect.extent.height) {
       if (!m_fsrImage) {
         DxvkImageCreateInfo imageInfo = { };
         imageInfo.type          = VK_IMAGE_TYPE_2D;
-        imageInfo.format        = VK_FORMAT_R16G16B16A16_SFLOAT;
+        // imageInfo.format        = VK_FORMAT_R16G16B16A16_SFLOAT;
+        imageInfo.format        = srcView->image()->info().format;
         imageInfo.sampleCount   = VK_SAMPLE_COUNT_1_BIT;
         imageInfo.extent        = { dstRect.extent.width, dstRect.extent.height, 1u };
         imageInfo.mipLevels     = 1;
