@@ -163,8 +163,8 @@ namespace dxvk {
         DxvkImageCreateInfo imageInfo = { };
         imageInfo.type          = VK_IMAGE_TYPE_2D;
         // imageInfo.format        = VK_FORMAT_R16G16B16A16_SFLOAT;
-        // imageInfo.format        = srcView->image()->info().format;
-        imageInfo.format        = VK_FORMAT_B8G8R8A8_UNORM;
+        imageInfo.format        = srcView->image()->info().format;
+        // imageInfo.format        = VK_FORMAT_B8G8R8A8_UNORM;
         imageInfo.sampleCount   = VK_SAMPLE_COUNT_1_BIT;
         imageInfo.extent        = { dstRect.extent.width, dstRect.extent.height, 1u };
         imageInfo.mipLevels     = 1;
@@ -223,6 +223,27 @@ namespace dxvk {
       
       // We must track the new image
       ctx.cmd->track(m_fsrImage, DxvkAccess::Write);
+
+      VkImageMemoryBarrier2 fsrBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
+      fsrBarrier.srcStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+      fsrBarrier.srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
+      fsrBarrier.dstStageMask  = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+      fsrBarrier.dstAccessMask = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT;
+
+      fsrBarrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+      fsrBarrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+      fsrBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      fsrBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+      fsrBarrier.image = m_fsrImage->handle();
+      fsrBarrier.subresourceRange = m_fsrView->imageSubresources();
+
+      VkDependencyInfo fsrDep = { VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+      fsrDep.imageMemoryBarrierCount = 1;
+      fsrDep.pImageMemoryBarriers = &fsrBarrier;
+
+      ctx.cmd->cmdPipelineBarrier(DxvkCmdBuffer::ExecBuffer, &fsrDep);
 
       ctx.cmd->cmdBeginRendering(&renderInfo);
     }
