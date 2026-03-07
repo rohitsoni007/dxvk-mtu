@@ -158,8 +158,7 @@ namespace dxvk {
 
         Logger::info(str::format("DxvkSwapchainBlitter: srcView->image()->info().format: ",
           srcView->image()->info().format));
-      // if (!m_fsrImage || m_fsrImage->info().extent.width != dstRect.extent.width || m_fsrImage->info().extent.height != dstRect.extent.height) {
-      if (!m_fsrImage) {
+
         DxvkImageCreateInfo imageInfo = { };
         imageInfo.type          = VK_IMAGE_TYPE_2D;
         // imageInfo.format        = VK_FORMAT_R16G16B16A16_SFLOAT;
@@ -200,7 +199,6 @@ namespace dxvk {
         Logger::info("DxvkSwapchainBlitter: Creating FSR intermediate view...");
         m_fsrView = m_fsrImage->createView(viewInfo);
         Logger::info("DxvkSwapchainBlitter: FSR intermediate view created.");
-      }
 
       ctx.cmd->cmdEndRendering();
 

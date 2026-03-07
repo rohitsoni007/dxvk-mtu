@@ -84,14 +84,14 @@ namespace dxvk {
   VkDescriptorSetLayout DxvkFsr::createDescriptorSetLayout() const {
     auto vkd = m_device->vkd();
 
-    // std::array<VkDescriptorSetLayoutBinding, 2> bindings = {{
-    //   { 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr },
-    //   { 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr }
-    // }};
     std::array<VkDescriptorSetLayoutBinding, 2> bindings = {{
-      { 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr },
+      { 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr },
       { 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr }
     }};
+    // std::array<VkDescriptorSetLayoutBinding, 2> bindings = {{
+    //   { 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr },
+    //   { 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr }
+    // }};
 
     VkDescriptorSetLayoutCreateInfo info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
     info.bindingCount = bindings.size();
@@ -150,9 +150,9 @@ namespace dxvk {
     EasuPushConstants push = {};
     FsrEasuConOffset(
       push.con0, push.con1, push.con2, push.con3,
-      static_cast<float>(dstRect.extent.width), static_cast<float>(dstRect.extent.height),
-      static_cast<float>(inputView->image()->info().extent.width), static_cast<float>(inputView->image()->info().extent.height),
       static_cast<float>(srcRect.extent.width), static_cast<float>(srcRect.extent.height),
+      static_cast<float>(inputView->image()->info().extent.width), static_cast<float>(inputView->image()->info().extent.height),
+      static_cast<float>(dstRect.extent.width), static_cast<float>(dstRect.extent.height),
       static_cast<float>(srcRect.offset.x), static_cast<float>(srcRect.offset.y)
     );
 
@@ -163,7 +163,7 @@ namespace dxvk {
     VkDescriptorImageInfo dstInfo = { VK_NULL_HANDLE, outputView->handle(), VK_IMAGE_LAYOUT_GENERAL };
 
     std::array<VkWriteDescriptorSet, 2> writes = {{
-      { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dset, 0, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &srcInfo, nullptr, nullptr },
+      { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dset, 0, 0, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &srcInfo, nullptr, nullptr },
       { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dset, 1, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, &dstInfo, nullptr, nullptr }
     }};
     
@@ -202,7 +202,7 @@ namespace dxvk {
     VkDescriptorImageInfo dstInfo = { VK_NULL_HANDLE, outputView->handle(), VK_IMAGE_LAYOUT_GENERAL };
 
     std::array<VkWriteDescriptorSet, 2> writes = {{
-      { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dset, 0, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &srcInfo, nullptr, nullptr },
+      { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dset, 0, 0, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &srcInfo, nullptr, nullptr },
       { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, dset, 1, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, &dstInfo, nullptr, nullptr }
     }};
     
@@ -237,10 +237,10 @@ namespace dxvk {
     barrierRead.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
     barrierRead.dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
     barrierRead.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
-    // barrierRead.oldLayout = inputView->image()->pickLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    // barrierRead.oldLayout = inputView->image()->pickLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     // barrierRead.newLayout = inputView->image()->pickLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     barrierRead.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-    barrierRead.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    barrierRead.newLayout = inputView->image()->pickLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     barrierRead.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrierRead.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrierRead.image = inputView->image()->handle();
@@ -353,6 +353,25 @@ namespace dxvk {
       Logger::info("DxvkFsr: EASU finished.");
     }
     Logger::info("DxvkFsr: dispatch finished.");
+
+    // Final barrier to make the output image readable by graphics
+    VkImageMemoryBarrier2 finalBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
+    finalBarrier.srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+    finalBarrier.srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
+    finalBarrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+    finalBarrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
+    finalBarrier.oldLayout = outputView->image()->pickLayout(VK_IMAGE_LAYOUT_GENERAL);
+    finalBarrier.newLayout = outputView->image()->pickLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    finalBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    finalBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    finalBarrier.image = outputView->image()->handle();
+    finalBarrier.subresourceRange = outputView->imageSubresources();
+
+    VkDependencyInfo finalDepInfo = { VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+    finalDepInfo.imageMemoryBarrierCount = 1;
+    finalDepInfo.pImageMemoryBarriers = &finalBarrier;
+
+    ctx.cmd->cmdPipelineBarrier(DxvkCmdBuffer::ExecBuffer, &finalDepInfo);
   }
 
 }
