@@ -55,6 +55,9 @@ namespace dxvk {
     /// Sync interval. Overrides the value
     /// passed to IDXGISwapChain::Present.
     int32_t syncInterval;
+
+    /// Custom resolution for the swapchain.
+    std::string customResolution;
   };
   
 }

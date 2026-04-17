@@ -93,6 +93,8 @@ namespace dxvk {
     this->maxFrameRate = config.getOption<int32_t>("dxgi.maxFrameRate", 0);
     this->syncInterval = config.getOption<int32_t>("dxgi.syncInterval", -1);
 
+    this->customResolution = config.getOption<std::string>("dxgi.customResolution", "");
+
     // We don't support dcomp swapchains and some games may rely on them failing on creation
     this->enableDummyCompositionSwapchain = config.getOption<bool>("dxgi.enableDummyCompositionSwapchain", false);
 
