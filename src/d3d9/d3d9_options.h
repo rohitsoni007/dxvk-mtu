@@ -164,6 +164,9 @@ namespace dxvk {
 
     /// Add an extra front buffer to make GetFrontBufferData() work correctly when the swapchain only has a single buffer
     bool extraFrontbuffer;
+
+    /// Custom resolution
+    std::string customResolution;
   };
 
 }
