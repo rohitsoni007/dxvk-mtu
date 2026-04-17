@@ -818,6 +818,17 @@ namespace dxvk {
 
     if (env::getEnvVar("DXVK_FORCE_WINDOWED") == "1")
       pPresentParams->Windowed         = TRUE;
+
+    // 🔥 FORCE INTERNAL RESOLUTION
+    uint32_t customW = 0;
+    uint32_t customH = 0;
+    if (std::sscanf(m_parent->GetOptions()->customResolution.c_str(), "%ux%u", &customW, &customH) == 2) {
+      if (customW > 0 && customH > 0) {
+        pPresentParams->BackBufferWidth  = customW;
+        pPresentParams->BackBufferHeight = customH;
+        Logger::info(str::format("D3D9SwapChainEx: Forcing internal buffer resolution to ", customW, "x", customH));
+      }
+    }
   }
 
 

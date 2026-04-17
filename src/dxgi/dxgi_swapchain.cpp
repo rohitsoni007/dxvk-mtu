@@ -51,6 +51,17 @@ namespace dxvk {
       auto instance = pFactory->GetDXVKInstance();
       m_hasLatencyControl = instance->options().latencySleep == Tristate::True;
     }
+
+    // 🔥 FORCE INTERNAL RESOLUTION
+    uint32_t customW = 0;
+    uint32_t customH = 0;
+    if (std::sscanf(m_factory->GetOptions()->customResolution.c_str(), "%ux%u", &customW, &customH) == 2) {
+      if (customW > 0 && customH > 0) {
+        m_desc.Width  = customW;
+        m_desc.Height = customH;
+        Logger::info(str::format("DxgiSwapChain: Forcing internal buffer resolution to ", customW, "x", customH));
+      }
+    }
   }
   
   
@@ -429,6 +440,17 @@ namespace dxvk {
     wsi::getWindowSize(m_window,
       m_desc.Width  ? nullptr : &m_desc.Width,
       m_desc.Height ? nullptr : &m_desc.Height);
+
+    // 🔥 FORCE INTERNAL RESOLUTION
+    uint32_t customW = 0;
+    uint32_t customH = 0;
+    if (std::sscanf(m_factory->GetOptions()->customResolution.c_str(), "%ux%u", &customW, &customH) == 2) {
+      if (customW > 0 && customH > 0) {
+        m_desc.Width  = customW;
+        m_desc.Height = customH;
+        Logger::info(str::format("DxgiSwapChain: ResizeBuffers: Forcing internal buffer resolution to ", customW, "x", customH));
+      }
+    }
     
     if (BufferCount != 0)
       m_desc.BufferCount = BufferCount;
