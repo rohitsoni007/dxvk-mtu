@@ -1110,6 +1110,19 @@ namespace dxvk {
   VkExtent2D Presenter::pickImageExtent(
     const VkSurfaceCapabilitiesKHR& caps,
           VkExtent2D                desired) {
+    const auto& options = m_device->config();
+    uint32_t customW = 0;
+    uint32_t customH = 0;
+
+    if (std::sscanf(options.customResolution.c_str(), "%ux%u", &customW, &customH) == 2) {
+      VkExtent2D actual;
+      actual.width  = customW;
+      actual.height = customH;
+
+      Logger::info(str::format("Presenter: Forcing custom resolution: ", actual.width, "x", actual.height));
+      return actual;
+    }
+
     if (caps.currentExtent.width != std::numeric_limits<uint32_t>::max())
       return caps.currentExtent;
 

@@ -63,6 +63,9 @@ namespace dxvk {
 
     // Device name
     std::string deviceFilter;
+    
+    /// Custom resolution
+    std::string customResolution;
   };
 
 }

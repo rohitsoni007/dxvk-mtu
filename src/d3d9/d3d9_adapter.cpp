@@ -886,6 +886,26 @@ namespace dxvk {
         m_modes.push_back(mode);
     }
 
+    // Inject Custom Resolution
+    uint32_t customW = 0;
+    uint32_t customH = 0;
+    if (std::sscanf(options.customResolution.c_str(), "%ux%u", &customW, &customH) == 2) {
+      D3DDISPLAYMODEEX mode = { };
+      mode.Size        = sizeof(D3DDISPLAYMODEEX);
+      mode.Width       = customW;
+      mode.Height      = customH;
+      mode.RefreshRate = 60;
+      mode.Format      = static_cast<D3DFORMAT>(Format);
+      mode.ScanLineOrdering = D3DSCANLINEORDERING_PROGRESSIVE;
+
+      bool ratioMatch = forcedRatio.undefined() || Ratio<DWORD>(customW, customH) == forcedRatio;
+
+      if (ratioMatch) {
+         if (std::count(m_modes.begin(), m_modes.end(), mode) == 0)
+           m_modes.push_back(mode);
+      }
+    }
+
     // Sort display modes by width, height and refresh rate (descending), in that order.
     // Some games rely on correct ordering, e.g. Prince of Persia (2008) expects the highest
     // refresh rate to be listed first for a particular resolution.

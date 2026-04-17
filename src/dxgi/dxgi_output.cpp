@@ -320,6 +320,37 @@ namespace dxvk {
       dstModeId += 1;
     }
     
+    // Inject custom resolution if specified
+    const auto& options = m_adapter->GetDXVKInstance()->options();
+
+    uint32_t customW = 0;
+    uint32_t customH = 0;
+
+    if (std::sscanf(options.customResolution.c_str(), "%ux%u", &customW, &customH) == 2) {
+      DXGI_MODE_DESC1 customMode = { };
+      customMode.Width            = customW;
+      customMode.Height           = customH;
+      customMode.RefreshRate      = { 60, 1 }; // Default to 60Hz
+      customMode.Format           = EnumFormat;
+      customMode.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
+      customMode.Scaling          = DXGI_MODE_SCALING_UNSPECIFIED;
+      customMode.Stereo           = FALSE;
+
+      // Check if it's already in the list
+      bool exists = false;
+      for (const auto& m : modeList) {
+        if (m.Width == customW && m.Height == customH) {
+          exists = true;
+          break;
+        }
+      }
+
+      if (!exists) {
+        modeList.push_back(customMode);
+        dstModeId += 1;
+      }
+    }
+
     // Sort display modes by width, height and refresh rate,
     // in that order. Some games rely on correct ordering.
     std::sort(modeList.begin(), modeList.end(),
