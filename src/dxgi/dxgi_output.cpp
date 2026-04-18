@@ -122,6 +122,15 @@ namespace dxvk {
 
     DXGI_MODE_DESC1 activeMode = ConvertDisplayMode(activeWsiMode);
 
+    // Override with custom resolution if specified
+    const auto& options = m_adapter->GetDXVKInstance()->options();
+    uint32_t customW = 0;
+    uint32_t customH = 0;
+    if (std::sscanf(options.customResolution.c_str(), "%ux%u", &customW, &customH) == 2) {
+      activeMode.Width = customW;
+      activeMode.Height = customH;
+    }
+
     DXGI_MODE_DESC1 defaultMode;
     defaultMode.Width            = 0;
     defaultMode.Height           = 0;
@@ -211,6 +220,17 @@ namespace dxvk {
     if (!wsi::getDesktopCoordinates(m_monitor, &pDesc->DesktopCoordinates)) {
       Logger::err("DXGI: Failed to query monitor coords");
       return E_FAIL;
+    }
+
+    // Override with custom resolution if specified
+    const auto& options = m_adapter->GetDXVKInstance()->options();
+    uint32_t customW = 0;
+    uint32_t customH = 0;
+    if (std::sscanf(options.customResolution.c_str(), "%ux%u", &customW, &customH) == 2) {
+      pDesc->DesktopCoordinates.left = 0;
+      pDesc->DesktopCoordinates.top = 0;
+      pDesc->DesktopCoordinates.right = int32_t(customW);
+      pDesc->DesktopCoordinates.bottom = int32_t(customH);
     }
     
     if (!wsi::getDisplayName(m_monitor, pDesc->DeviceName)) {
@@ -674,6 +694,15 @@ namespace dxvk {
     // Query current display mode
     wsi::WsiMode activeWsiMode = { };
     wsi::getCurrentDisplayMode(m_monitor, &activeWsiMode);
+
+    // Override with custom resolution if specified
+    const auto& options = m_adapter->GetDXVKInstance()->options();
+    uint32_t customW = 0;
+    uint32_t customH = 0;
+    if (std::sscanf(options.customResolution.c_str(), "%ux%u", &customW, &customH) == 2) {
+      activeWsiMode.width = customW;
+      activeWsiMode.height = customH;
+    }
 
     // Get the display metadata + colorimetry
     wsi::WsiEdidData edidData = wsi::getMonitorEdid(m_monitor);

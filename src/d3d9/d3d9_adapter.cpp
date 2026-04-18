@@ -786,6 +786,16 @@ namespace dxvk {
     }
 
     *pMode = ConvertDisplayMode(mode);
+
+    // Override with custom resolution if specified
+    const auto& options = m_parent->GetOptions();
+    uint32_t customW = 0;
+    uint32_t customH = 0;
+    if (std::sscanf(options.customResolution.c_str(), "%ux%u", &customW, &customH) == 2) {
+      pMode->Width = customW;
+      pMode->Height = customH;
+    }
+
     return D3D_OK;
   }
 
